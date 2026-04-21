@@ -60,8 +60,19 @@ body {
 }
 
 .login-form input,
-.login-form button {
+.login-form button,
+.card button {
   padding: 0.65rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid #cbd5e1;
+}
+
+button {
+  cursor: pointer;
+}
+
+.error-text {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
 }

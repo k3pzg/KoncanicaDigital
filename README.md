@@ -1,94 +1,115 @@
-# KoncanicaDigital (Clean Foundation)
+# KoncanicaDigital
 
-Ovaj repozitorij sadrži **čistu osnovu** nove aplikacije, potpuno odvojenu od stare.
+Minimalni foundation (frontend + backend) s MySQL bazom i osnovnim auth flowom.
 
-## Struktura
+## 1) Preduvjeti
 
-- `frontend/` – React + Vite frontend shell
-- `backend/` – Express backend shell
+- Node.js 20+
+- npm 10+
+- Docker (preporučeno za lokalni MySQL)
 
-## Što je uključeno
-
-- modularna struktura projekta
-- frontend shell s routingom
-- login placeholder ekran
-- backend API shell
-- `/health` endpoint
-- priprema za bazu (konfiguracijski sloj + mjesto za module)
-
----
-
-## Lokalno pokretanje (korak po korak)
-
-### 0) Instalacija paketa (jednom)
-
-U rootu projekta pokreni:
+## 2) Instalacija paketa
 
 ```bash
 npm install
 ```
 
----
+> Root više **ne koristi `concurrently`** paket, pa `npm install` prolazi bez tog 403 problema.
 
-## Backend
+## 3) Pokretanje baze
 
-### 1) Kako pokrenuti backend (komanda)
+### Opcija A (preporučeno): Docker Compose
+
+```bash
+docker compose up -d
+```
+
+Ovo podiže MySQL na `localhost:3306`.
+
+### Opcija B: lokalni MySQL server
+
+Ako ne koristiš Docker, ručno kreiraj bazu:
+
+```sql
+CREATE DATABASE koncanica_digital;
+```
+
+## 4) .env konfiguracija (backend)
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Provjeri vrijednosti u `backend/.env`:
+
+```env
+PORT=3001
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=root
+MYSQL_DATABASE=koncanica_digital
+SESSION_TTL_HOURS=24
+```
+
+## 5) Migracije i seed
+
+Iz roota projekta:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+Seed korisnici:
+
+- `admin / admin123`
+- `tehnolog / tehnolog123`
+- `cuvar / cuvar123`
+
+## 6) Pokretanje backenda i frontenda
+
+### Backend
 
 ```bash
 npm run dev:backend
 ```
 
-### 2) Na kojem portu radi
+- URL: `http://localhost:3001`
+- Health: `GET http://localhost:3001/health`
 
-- Zadani port je: **3001**
-- Konfiguracija je u `backend/.env.example` (`PORT=3001`)
-
-### 3) Koji je health endpoint
-
-- **GET** `http://localhost:3001/health`
-
-### 4) Kako ga testirati
-
-U novom terminalu:
-
-```bash
-curl http://localhost:3001/health
-```
-
-Očekivani odgovor (primjer):
-
-```json
-{
-  "status": "ok",
-  "service": "koncanica-digital-backend",
-  "timestamp": "2026-04-21T12:00:00.000Z"
-}
-```
-
----
-
-## Frontend
-
-### 5) Kako pokrenuti frontend
+### Frontend
 
 ```bash
 npm run dev:frontend
 ```
 
-### 6) Na kojem portu radi
+- URL: `http://localhost:5173`
 
-- Zadani port je: **5173**
-
-### 7) Kako otvoriti aplikaciju u browseru
-
-- Otvori: **http://localhost:5173**
-
----
-
-## Opcionalno: pokreni oba servisa odjednom
+### Oba odjednom
 
 ```bash
 npm run dev
 ```
 
-To pokreće i backend i frontend paralelno.
+## 7) End-to-end provjera login flowa
+
+1. Otvori `http://localhost:5173`
+2. Login: `admin / admin123`
+3. Nakon uspješne prijave redirect ide na `/app` (protected route)
+4. Klikni **Logout** -> vraća na login ekran (`/login`)
+
+## 8) API auth endpointi
+
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
+- `GET /health`
+
+Primjer login requesta:
+
+```bash
+curl -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+```

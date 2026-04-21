@@ -1,19 +1,60 @@
+import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../state/AuthContext';
+
 export function LoginPage() {
+  const { login, isAuthenticated } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/app" replace />;
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await login({ username, password });
+    } catch (submitError) {
+      setError(submitError.message || 'Login nije uspio');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <section className="card">
-      <h2>Login (Placeholder)</h2>
-      <p>Ovo je minimalni ekran za autentikaciju i služi kao početni placeholder.</p>
-      <form className="login-form" onSubmit={(event) => event.preventDefault()}>
+      <h2>Login</h2>
+      <p>Prijava na osnovni auth shell.</p>
+      <form className="login-form" onSubmit={handleSubmit}>
         <label>
-          Email
-          <input type="email" placeholder="email@example.com" disabled />
+          Korisničko ime
+          <input
+            type="text"
+            placeholder="admin"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            required
+          />
         </label>
         <label>
           Lozinka
-          <input type="password" placeholder="••••••••" disabled />
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
         </label>
-        <button type="submit" disabled>
-          Prijava (uskoro)
+        {error ? <p className="error-text">{error}</p> : null}
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Prijava...' : 'Prijava'}
         </button>
       </form>
     </section>
