@@ -3,6 +3,7 @@ import cors from 'cors';
 import { healthRouter } from '../modules/health/health.router.js';
 import { authRouter } from '../modules/auth/routes/auth.router.js';
 import { waterObjectsRouter } from '../modules/water-objects/routes/water-objects.router.js';
+import { fishRouter } from '../modules/fish/routes/fish.router.js';
 
 export function createApp() {
   const app = express();
@@ -13,6 +14,7 @@ export function createApp() {
   app.use('/health', healthRouter);
   app.use('/auth', authRouter);
   app.use('/water-objects', waterObjectsRouter);
+  app.use('/', fishRouter);
 
   return app;
 }

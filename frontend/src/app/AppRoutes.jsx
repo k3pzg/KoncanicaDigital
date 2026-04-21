@@ -3,6 +3,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage';
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
 import { AppHomePage } from '../features/app/pages/AppHomePage';
 import { WaterObjectsPage } from '../features/water-objects/pages/WaterObjectsPage';
+import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
 
 export function AppRoutes() {
   return (
@@ -21,6 +22,15 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <WaterObjectsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/app/fish"
+        element={
+          <ProtectedRoute>
+            <FishPhaseOnePage />
           </ProtectedRoute>
         }
       />

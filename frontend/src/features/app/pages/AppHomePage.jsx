@@ -11,6 +11,9 @@ export function AppHomePage() {
       <p>
         <Link to="/app/water-objects">Otvori Water Objects modul</Link>
       </p>
+      <p>
+        <Link to="/app/fish">Otvori Fish phase 1 modul</Link>
+      </p>
       <button type="button" onClick={logout}>
         Logout
       </button>
