@@ -41,6 +41,14 @@ export function WaterObjectsPage() {
 
   const submitLabel = useMemo(() => (editingId ? 'Spremi promjene' : 'Dodaj objekt'), [editingId]);
 
+  function handleFieldChange(event) {
+    const { name, value, type, checked } = event.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -48,6 +56,7 @@ export function WaterObjectsPage() {
     try {
       const payload = {
         ...form,
+        code: form.code,
         is_active: Boolean(form.is_active)
       };
 
@@ -96,20 +105,56 @@ export function WaterObjectsPage() {
         <h2>Water objects</h2>
         {error ? <p className="error-text">{error}</p> : null}
         <form className="login-form" onSubmit={handleSubmit}>
-          <label>Code<input value={form.code} onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))} required /></label>
-          <label>Object type
-            <select value={form.object_type} onChange={(event) => setForm((prev) => ({ ...prev, object_type: event.target.value }))}>
-              {objectTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+          <label>
+            Code
+            <input
+              name="code"
+              value={form.code}
+              onChange={handleFieldChange}
+              required
+            />
+          </label>
+          <label>
+            Object type
+            <select name="object_type" value={form.object_type} onChange={handleFieldChange}>
+              {objectTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
             </select>
           </label>
-          <label>area_total_m2<input value={form.area_total_m2} onChange={(event) => setForm((prev) => ({ ...prev, area_total_m2: event.target.value }))} /></label>
-          <label>area_productive_m2<input value={form.area_productive_m2} onChange={(event) => setForm((prev) => ({ ...prev, area_productive_m2: event.target.value }))} /></label>
-          <label>max_depth_m<input value={form.max_depth_m} onChange={(event) => setForm((prev) => ({ ...prev, max_depth_m: event.target.value }))} /></label>
-          <label>max_volume_m3<input value={form.max_volume_m3} onChange={(event) => setForm((prev) => ({ ...prev, max_volume_m3: event.target.value }))} /></label>
-          <label>centroid_wkt<textarea value={form.centroid_wkt} onChange={(event) => setForm((prev) => ({ ...prev, centroid_wkt: event.target.value }))} /></label>
-          <label>polygon_geojson<textarea value={form.polygon_geojson} onChange={(event) => setForm((prev) => ({ ...prev, polygon_geojson: event.target.value }))} /></label>
-          <label>notes<textarea value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} /></label>
-          <label><input type="checkbox" checked={form.is_active} onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))} /> is_active</label>
+          <label>
+            area_total_m2
+            <input name="area_total_m2" value={form.area_total_m2} onChange={handleFieldChange} />
+          </label>
+          <label>
+            area_productive_m2
+            <input name="area_productive_m2" value={form.area_productive_m2} onChange={handleFieldChange} />
+          </label>
+          <label>
+            max_depth_m
+            <input name="max_depth_m" value={form.max_depth_m} onChange={handleFieldChange} />
+          </label>
+          <label>
+            max_volume_m3
+            <input name="max_volume_m3" value={form.max_volume_m3} onChange={handleFieldChange} />
+          </label>
+          <label>
+            centroid_wkt
+            <textarea name="centroid_wkt" value={form.centroid_wkt} onChange={handleFieldChange} />
+          </label>
+          <label>
+            polygon_geojson
+            <textarea name="polygon_geojson" value={form.polygon_geojson} onChange={handleFieldChange} />
+          </label>
+          <label>
+            notes
+            <textarea name="notes" value={form.notes} onChange={handleFieldChange} />
+          </label>
+          <label>
+            <input name="is_active" type="checkbox" checked={form.is_active} onChange={handleFieldChange} /> is_active
+          </label>
           <button type="submit">{submitLabel}</button>
         </form>
       </section>
@@ -121,8 +166,12 @@ export function WaterObjectsPage() {
             <li key={item.id}>
               <strong>{item.code}</strong> ({item.object_type})
               <div className="row-actions">
-                <button type="button" onClick={() => startEdit(item)}>Edit</button>
-                <button type="button" onClick={() => handleDelete(item.id)}>Delete</button>
+                <button type="button" onClick={() => startEdit(item)}>
+                  Edit
+                </button>
+                <button type="button" onClick={() => handleDelete(item.id)}>
+                  Delete
+                </button>
               </div>
             </li>
           ))}
