@@ -6,17 +6,25 @@ function extractPolygonCoordinates(feature) {
   return feature.coordinates?.[0] ?? [];
 }
 
-function parsePolygon(geojsonText) {
-  if (!geojsonText) {
+function parsePolygon(geojsonValue) {
+  if (!geojsonValue) {
     return [];
   }
 
-  try {
-    const feature = JSON.parse(geojsonText);
-    return extractPolygonCoordinates(feature);
-  } catch {
-    return [];
+  if (typeof geojsonValue === 'object') {
+    return extractPolygonCoordinates(geojsonValue);
   }
+
+  if (typeof geojsonValue === 'string') {
+    try {
+      const feature = JSON.parse(geojsonValue);
+      return extractPolygonCoordinates(feature);
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
 }
 
 function getBounds(polygons) {

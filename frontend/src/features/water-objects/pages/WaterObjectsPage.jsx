@@ -10,6 +10,23 @@ import { WaterObjectsMap } from '../components/WaterObjectsMap';
 
 const objectTypes = ['ribnjak', 'bazen', 'kanal', 'zimovnik', 'rastiliste', 'maticnjak'];
 
+
+function normalizePolygonGeojsonForTextarea(value) {
+  if (!value) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return '';
+  }
+}
+
 const initialForm = {
   code: '',
   object_type: 'ribnjak',
@@ -92,7 +109,7 @@ export function WaterObjectsPage() {
       is_active: Boolean(item.is_active),
       notes: item.notes ?? '',
       centroid_wkt: item.centroid_wkt ?? '',
-      polygon_geojson: item.polygon_geojson ?? ''
+      polygon_geojson: normalizePolygonGeojsonForTextarea(item.polygon_geojson)
     });
   }
 
