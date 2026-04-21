@@ -89,8 +89,13 @@ Seed kategorije ribe:
 - `matica`
 
 Seed vrste ribe (minimalno za lokalni test):
-- `saran`
+- `saran_ljuskas`
+- `saran_goli`
 - `amur`
+- `tolstolobik_sivi`
+- `tolstolobik_bijeli`
+- `som`
+- `smud`
 - `stuka`
 
 ### Frontend

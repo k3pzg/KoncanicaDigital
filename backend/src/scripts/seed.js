@@ -16,8 +16,13 @@ const fishCategoriesToSeed = [
 ];
 
 const fishSpeciesToSeed = [
-  { code: 'saran', label: 'Šaran' },
+  { code: 'saran_ljuskas', label: 'Šaran ljuskaš' },
+  { code: 'saran_goli', label: 'Šaran goli' },
   { code: 'amur', label: 'Amur' },
+  { code: 'tolstolobik_sivi', label: 'Tolstolobik sivi' },
+  { code: 'tolstolobik_bijeli', label: 'Tolstolobik bijeli' },
+  { code: 'som', label: 'Som' },
+  { code: 'smud', label: 'Smuđ' },
   { code: 'stuka', label: 'Štuka' }
 ];
 
