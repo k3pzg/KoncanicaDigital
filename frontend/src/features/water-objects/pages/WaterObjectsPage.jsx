@@ -53,10 +53,16 @@ export function WaterObjectsPage() {
     event.preventDefault();
     setError('');
 
+    const normalizedCode = form.code.trim();
+    if (!normalizedCode) {
+      setError('code is required');
+      return;
+    }
+
     try {
       const payload = {
         ...form,
-        code: form.code,
+        code: normalizedCode,
         is_active: Boolean(form.is_active)
       };
 
