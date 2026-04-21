@@ -1,0 +1,22 @@
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../auth/state/AuthContext';
+
+export function AppHomePage() {
+  const { user, logout } = useAuth();
+
+  return (
+    <section className="card">
+      <h2>Zaštićeni app shell</h2>
+      <p>Prijavljen korisnik: <strong>{user?.username}</strong> ({user?.role})</p>
+      <p>
+        <Link to="/app/water-objects">Otvori Water Objects modul</Link>
+      </p>
+      <p>
+        <Link to="/app/fish">Otvori Fish phase 1 modul</Link>
+      </p>
+      <button type="button" onClick={logout}>
+        Logout
+      </button>
+    </section>
+  );
+}
