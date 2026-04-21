@@ -201,7 +201,7 @@ export function WaterObjectsPage() {
         </ul>
       </section>
 
-      <WaterObjectsMap items={items} />
+      <WaterObjectsMap items={items} selectedObjectId={editingId} />
     </div>
   );
 }

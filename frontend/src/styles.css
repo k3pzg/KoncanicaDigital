@@ -36,3 +36,11 @@ button { cursor: pointer; }
 .water-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
 .water-list li { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center; }
 .row-actions { display: flex; gap: 0.5rem; }
+
+.water-objects-map {
+  width: 100%;
+  min-height: 360px;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+}

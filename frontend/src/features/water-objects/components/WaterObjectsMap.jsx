@@ -1,87 +1,125 @@
-function extractPolygonCoordinates(feature) {
-  if (!feature || feature.type !== 'Polygon') {
-    return [];
-  }
+import { useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-  return feature.coordinates?.[0] ?? [];
-}
-
-function parsePolygon(geojsonValue) {
-  if (!geojsonValue) {
-    return [];
-  }
-
-  if (typeof geojsonValue === 'object') {
-    return extractPolygonCoordinates(geojsonValue);
-  }
-
-  if (typeof geojsonValue === 'string') {
-    try {
-      const feature = JSON.parse(geojsonValue);
-      return extractPolygonCoordinates(feature);
-    } catch {
-      return [];
-    }
-  }
-
-  return [];
-}
-
-function getBounds(polygons) {
-  const points = polygons.flat();
-  if (!points.length) {
+function parseGeoJsonValue(value) {
+  if (!value) {
     return null;
   }
 
-  const xs = points.map((point) => point[0]);
-  const ys = points.map((point) => point[1]);
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
 
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys)
-  };
+  if (typeof value === 'object') {
+    return value;
+  }
+
+  return null;
 }
 
-function toSvgPoints(points, bounds, width, height) {
-  const xRange = bounds.maxX - bounds.minX || 1;
-  const yRange = bounds.maxY - bounds.minY || 1;
+function normalizeToFeatureOrCollection(geojson) {
+  if (!geojson || typeof geojson !== 'object') {
+    return null;
+  }
 
-  return points
-    .map(([x, y]) => {
-      const px = ((x - bounds.minX) / xRange) * (width - 20) + 10;
-      const py = height - (((y - bounds.minY) / yRange) * (height - 20) + 10);
-      return `${px},${py}`;
-    })
-    .join(' ');
+  if (geojson.type === 'Feature' || geojson.type === 'FeatureCollection') {
+    return geojson;
+  }
+
+  if (typeof geojson.type === 'string' && geojson.coordinates) {
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: geojson
+    };
+  }
+
+  return null;
 }
 
-export function WaterObjectsMap({ items }) {
-  const width = 520;
-  const height = 320;
-  const polygons = items.map((item) => parsePolygon(item.polygon_geojson)).filter((coords) => coords.length > 2);
-  const bounds = getBounds(polygons);
+export function WaterObjectsMap({ items, selectedObjectId }) {
+  const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) {
+      return;
+    }
+
+    const map = L.map(mapContainerRef.current, {
+      center: [45.1, 15.2],
+      zoom: 7
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    const layers = [];
+
+    items.forEach((item) => {
+      const parsed = parseGeoJsonValue(item.polygon_geojson);
+      const featureGeoJson = normalizeToFeatureOrCollection(parsed);
+
+      if (!featureGeoJson) {
+        return;
+      }
+
+      const layer = L.geoJSON(featureGeoJson, {
+        style: {
+          color: item.id === selectedObjectId ? '#dc2626' : '#1e40af',
+          weight: item.id === selectedObjectId ? 3 : 2,
+          fillOpacity: 0.2
+        }
+      }).addTo(map);
+
+      layers.push({ item, layer });
+    });
+
+    if (layers.length) {
+      const selected = layers.find((entry) => entry.item.id === selectedObjectId);
+      const focusLayer = selected?.layer ?? layers[0].layer;
+      const bounds = focusLayer.getBounds();
+
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }
+
+    return () => {
+      layers.forEach(({ layer }) => {
+        map.removeLayer(layer);
+      });
+    };
+  }, [items, selectedObjectId]);
 
   return (
     <section className="card map-card">
       <h3>Karta (polygon_geojson)</h3>
-      {!polygons.length ? (
+      <div ref={mapContainerRef} className="water-objects-map" role="img" aria-label="Water objects map" />
+      {!items.some((item) => normalizeToFeatureOrCollection(parseGeoJsonValue(item.polygon_geojson))) ? (
         <p>Nema geometrije za prikaz.</p>
-      ) : (
-        <svg viewBox={`0 0 ${width} ${height}`} className="map-svg" role="img" aria-label="Water objects map preview">
-          <rect x="0" y="0" width={width} height={height} fill="#f8fafc" stroke="#cbd5e1" />
-          {polygons.map((polygon, index) => (
-            <polygon
-              key={index}
-              points={toSvgPoints(polygon, bounds, width, height)}
-              fill="rgba(30, 64, 175, 0.25)"
-              stroke="#1e40af"
-              strokeWidth="1.5"
-            />
-          ))}
-        </svg>
-      )}
+      ) : null}
     </section>
   );
 }
