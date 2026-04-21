@@ -21,7 +21,7 @@ export function LoginPage() {
     try {
       await login({ username, password });
     } catch (submitError) {
-      setError(submitError.message || 'Login nije uspio');
+      setError(submitError.message || 'Prijava nije uspjela');
     } finally {
       setIsSubmitting(false);
     }
@@ -29,8 +29,8 @@ export function LoginPage() {
 
   return (
     <section className="card">
-      <h2>Login</h2>
-      <p>Prijava na osnovni auth shell.</p>
+      <h2>Prijava</h2>
+      <p>Prijava u osnovno zaštićeno sučelje.</p>
       <form className="login-form" onSubmit={handleSubmit}>
         <label>
           Korisničko ime

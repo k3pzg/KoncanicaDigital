@@ -81,7 +81,7 @@ export function FishPhaseOnePage() {
 
   useEffect(() => {
     loadLookupsAndViews().catch((loadError) => {
-      setError(loadError.message || 'Greška pri učitavanju fish modula.');
+      setError(loadError.message || 'Greška pri učitavanju modula ribe.');
     });
   }, []);
 
@@ -135,7 +135,7 @@ export function FishPhaseOnePage() {
       setEntryForm(initialEntryForm);
       await loadLookupsAndViews();
     } catch (submitError) {
-      setError(submitError.message || 'Greška pri spremanju entry eventa.');
+      setError(submitError.message || 'Greška pri spremanju unosa.');
     }
   }
 
@@ -148,7 +148,7 @@ export function FishPhaseOnePage() {
       setControlForm(initialControlForm);
       await loadLookupsAndViews();
     } catch (submitError) {
-      setError(submitError.message || 'Greška pri spremanju control eventa.');
+      setError(submitError.message || 'Greška pri spremanju kontrole.');
     }
   }
 
@@ -160,125 +160,133 @@ export function FishPhaseOnePage() {
   return (
     <div className="fish-grid">
       <section className="card">
-        <h2>Fish phase 1</h2>
+        <h2>Riba - faza 1</h2>
         {error ? <p className="error-text">{error}</p> : null}
       </section>
 
       <section className="card">
-        <h3>Entry form</h3>
+        <h3>Unos događaja</h3>
         <form className="login-form" onSubmit={handleEntrySubmit}>
           <label>
-            Water object
+            Vodni objekt
             <select name="water_object_id" value={entryForm.water_object_id} onChange={handleEntryChange} required>
               <option value="">Odaberi objekt</option>
               {waterObjects.map((item) => <option key={item.id} value={item.id}>{item.code}</option>)}
             </select>
           </label>
-          <label>Event date<input type="date" name="event_date" value={entryForm.event_date} onChange={handleEntryChange} required /></label>
+          <label>Datum događaja<input type="date" name="event_date" value={entryForm.event_date} onChange={handleEntryChange} required /></label>
           <label>
-            Event type
+            Vrsta događaja
             <select name="event_type" value={entryForm.event_type} onChange={handleEntryChange}>
-              {entryEventTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+              {entryEventTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type === 'nasad' ? 'Nasad' : type === 'dodatni_nasad' ? 'Dodatni nasad' : 'Premještaj ulaz'}
+                </option>
+              ))}
             </select>
           </label>
           <label>
-            Species
+            Vrsta ribe
             <select name="species_id" value={entryForm.species_id} onChange={handleEntryChange} required>
               <option value="">Odaberi vrstu</option>
               {species.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
           </label>
           <label>
-            Category
+            Kategorija
             <select name="category_id" value={entryForm.category_id} onChange={handleEntryChange} required>
               <option value="">Odaberi kategoriju</option>
               {categories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
           </label>
-          <label>count_total<input name="count_total" value={entryForm.count_total} onChange={handleEntryChange} required /></label>
-          <label>weight_avg_kg<input name="weight_avg_kg" value={entryForm.weight_avg_kg} onChange={handleEntryChange} /></label>
-          <label>weight_total_kg<input name="weight_total_kg" value={entryForm.weight_total_kg} onChange={handleEntryChange} required /></label>
+          <label>Ukupno komada<input name="count_total" value={entryForm.count_total} onChange={handleEntryChange} required /></label>
+          <label>Prosječna masa (kg)<input name="weight_avg_kg" value={entryForm.weight_avg_kg} onChange={handleEntryChange} /></label>
+          <label>Ukupna masa (kg)<input name="weight_total_kg" value={entryForm.weight_total_kg} onChange={handleEntryChange} required /></label>
           <label>
-            source_kind
+            Vrsta podrijetla
             <select name="source_kind" value={entryForm.source_kind} onChange={handleEntryChange}>
-              {sourceKinds.map((item) => <option key={item} value={item}>{item}</option>)}
+              {sourceKinds.map((item) => (
+                <option key={item} value={item}>
+                  {item === 'interni_objekt' ? 'Interni objekt' : item === 'mrijestiliste' ? 'Mrijestilište' : item === 'uvoz' ? 'Uvoz' : 'Ostalo'}
+                </option>
+              ))}
             </select>
           </label>
           {entryForm.source_kind === 'interni_objekt' ? (
             <label>
-              source_water_object_id
+              Izvorni vodni objekt
               <select name="source_water_object_id" value={entryForm.source_water_object_id} onChange={handleEntryChange} required>
                 <option value="">Odaberi izvorni objekt</option>
                 {waterObjects.map((item) => <option key={item.id} value={item.id}>{item.code}</option>)}
               </select>
             </label>
           ) : null}
-          <label>source_label<textarea name="source_label" value={entryForm.source_label} onChange={handleEntryChange} /></label>
-          <label>notes<textarea name="notes" value={entryForm.notes} onChange={handleEntryChange} /></label>
-          <button type="submit">Spremi entry event</button>
+          <label>Opis podrijetla<textarea name="source_label" value={entryForm.source_label} onChange={handleEntryChange} /></label>
+          <label>Napomena<textarea name="notes" value={entryForm.notes} onChange={handleEntryChange} /></label>
+          <button type="submit">Spremi unos</button>
         </form>
       </section>
 
       <section className="card">
-        <h3>Control form</h3>
+        <h3>Unos kontrole</h3>
         <form className="login-form" onSubmit={handleControlSubmit}>
           <label>
-            Water object
+            Vodni objekt
             <select name="water_object_id" value={controlForm.water_object_id} onChange={handleControlHeaderChange} required>
               <option value="">Odaberi objekt</option>
               {waterObjects.map((item) => <option key={item.id} value={item.id}>{item.code}</option>)}
             </select>
           </label>
-          <label>control_date<input type="date" name="control_date" value={controlForm.control_date} onChange={handleControlHeaderChange} required /></label>
-          <label>sample_area_m2<input name="sample_area_m2" value={controlForm.sample_area_m2} onChange={handleControlHeaderChange} /></label>
-          <label>estimated_total_area_m2<input name="estimated_total_area_m2" value={controlForm.estimated_total_area_m2} onChange={handleControlHeaderChange} /></label>
-          <label>notes<textarea name="notes" value={controlForm.notes} onChange={handleControlHeaderChange} /></label>
+          <label>Datum kontrole<input type="date" name="control_date" value={controlForm.control_date} onChange={handleControlHeaderChange} required /></label>
+          <label>Uzorkovana površina (m²)<input name="sample_area_m2" value={controlForm.sample_area_m2} onChange={handleControlHeaderChange} /></label>
+          <label>Procijenjena ukupna površina (m²)<input name="estimated_total_area_m2" value={controlForm.estimated_total_area_m2} onChange={handleControlHeaderChange} /></label>
+          <label>Napomena<textarea name="notes" value={controlForm.notes} onChange={handleControlHeaderChange} /></label>
 
           {controlForm.lines.map((line, index) => (
             <fieldset key={index} className="control-line-group">
-              <legend>Line {index + 1}</legend>
+              <legend>Redak {index + 1}</legend>
               <label>
-                species
+                Vrsta ribe
                 <select name="species_id" value={line.species_id} onChange={(event) => handleControlLineChange(index, event)} required>
                   <option value="">Odaberi vrstu</option>
                   {species.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                 </select>
               </label>
-              <label>sample_count<input name="sample_count" value={line.sample_count} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>sample_weight_total_kg<input name="sample_weight_total_kg" value={line.sample_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} /></label>
-              <label>sample_weight_avg_kg<input name="sample_weight_avg_kg" value={line.sample_weight_avg_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>estimated_count_total<input name="estimated_count_total" value={line.estimated_count_total} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>estimated_weight_total_kg<input name="estimated_weight_total_kg" value={line.estimated_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>notes<textarea name="notes" value={line.notes} onChange={(event) => handleControlLineChange(index, event)} /></label>
-              <button type="button" onClick={() => removeControlLine(index)}>Ukloni line</button>
+              <label>Broj u uzorku<input name="sample_count" value={line.sample_count} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Ukupna masa uzorka (kg)<input name="sample_weight_total_kg" value={line.sample_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} /></label>
+              <label>Prosječna masa uzorka (kg)<input name="sample_weight_avg_kg" value={line.sample_weight_avg_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Procijenjen ukupan broj<input name="estimated_count_total" value={line.estimated_count_total} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Procijenjena ukupna masa (kg)<input name="estimated_weight_total_kg" value={line.estimated_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Napomena<textarea name="notes" value={line.notes} onChange={(event) => handleControlLineChange(index, event)} /></label>
+              <button type="button" onClick={() => removeControlLine(index)}>Ukloni redak</button>
             </fieldset>
           ))}
 
-          <button type="button" onClick={addControlLine}>Dodaj line</button>
-          <button type="submit">Spremi control event</button>
+          <button type="button" onClick={addControlLine}>Dodaj redak</button>
+          <button type="submit">Spremi kontrolu</button>
         </form>
       </section>
 
       <section className="card fish-full-width">
-        <h3>Current stock</h3>
+        <h3>Trenutno stanje</h3>
         <div className="row-actions">
           <select value={stockFilterWaterObjectId} onChange={(event) => setStockFilterWaterObjectId(event.target.value)}>
             <option value="">Svi objekti</option>
             {waterObjects.map((item) => <option key={item.id} value={item.id}>{item.code}</option>)}
           </select>
-          <button type="button" onClick={refreshStock}>Refresh</button>
+          <button type="button" onClick={refreshStock}>Osvježi</button>
         </div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>object code</th><th>species</th><th>count_total</th><th>weight_avg_kg</th><th>weight_total_kg</th><th>last_refresh_type</th><th>last_refresh_date</th>
+                <th>Šifra objekta</th><th>Vrsta ribe</th><th>Ukupno komada</th><th>Prosječna masa (kg)</th><th>Ukupna masa (kg)</th><th>Zadnje osvježenje</th><th>Datum osvježenja</th>
               </tr>
             </thead>
             <tbody>
               {stockRows.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.water_object_code}</td><td>{item.species_label}</td><td>{item.count_total}</td><td>{item.weight_avg_kg}</td><td>{item.weight_total_kg}</td><td>{item.last_refresh_type}</td><td>{item.last_refresh_date?.slice(0, 10)}</td>
+                  <td>{item.water_object_code}</td><td>{item.species_label}</td><td>{item.count_total}</td><td>{item.weight_avg_kg}</td><td>{item.weight_total_kg}</td><td>{item.last_refresh_type === 'entry' ? 'Unos' : item.last_refresh_type === 'control' ? 'Kontrola' : 'Ručno'}</td><td>{item.last_refresh_date?.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>
@@ -287,12 +295,12 @@ export function FishPhaseOnePage() {
       </section>
 
       <section className="card fish-full-width">
-        <h3>Entry history</h3>
+        <h3>Povijest unosa</h3>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>date</th><th>object</th><th>type</th><th>species</th><th>category</th><th>count_total</th><th>weight_total_kg</th><th>source</th><th>source_label</th>
+                <th>Datum</th><th>Objekt</th><th>Vrsta događaja</th><th>Vrsta ribe</th><th>Kategorija</th><th>Ukupno komada</th><th>Ukupna masa (kg)</th><th>Podrijetlo</th><th>Opis podrijetla</th>
               </tr>
             </thead>
             <tbody>
@@ -300,12 +308,12 @@ export function FishPhaseOnePage() {
                 <tr key={item.id}>
                   <td>{item.event_date?.slice(0, 10)}</td>
                   <td>{item.water_object_code}</td>
-                  <td>{item.event_type}</td>
+                  <td>{item.event_type === 'nasad' ? 'Nasad' : item.event_type === 'dodatni_nasad' ? 'Dodatni nasad' : 'Premještaj ulaz'}</td>
                   <td>{item.species_label}</td>
                   <td>{item.category_label}</td>
                   <td>{item.count_total}</td>
                   <td>{item.weight_total_kg}</td>
-                  <td>{item.source_water_object_code ?? item.source_kind}</td>
+                  <td>{item.source_water_object_code ?? (item.source_kind === 'interni_objekt' ? 'Interni objekt' : item.source_kind === 'mrijestiliste' ? 'Mrijestilište' : item.source_kind === 'uvoz' ? 'Uvoz' : 'Ostalo')}</td>
                   <td>{item.source_label}</td>
                 </tr>
               ))}
@@ -315,7 +323,7 @@ export function FishPhaseOnePage() {
       </section>
 
       <section className="card fish-full-width">
-        <h3>Control history</h3>
+        <h3>Povijest kontrola</h3>
         <ul className="water-list">
           {controlEvents.map((event) => (
             <li key={event.id}>

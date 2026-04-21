@@ -1,6 +1,6 @@
 # KoncanicaDigital
 
-Minimalni foundation (frontend + backend) s MySQL bazom, auth flowom i Water Objects modulom.
+Minimalni temelj (frontend + backend) s MySQL bazom, autentifikacijom i modulom Vodni objekti.
 
 ## 1) Preduvjeti
 - Node.js 20+
@@ -28,18 +28,18 @@ npm run dev
 - Backend: `http://localhost:3001`
 - Frontend: `http://localhost:5173`
 
-## 5) Login test korisnici
+## 5) Testni korisnici za prijavu
 - `admin / admin123`
 - `tehnolog / tehnolog123`
 - `cuvar / cuvar123`
 
-## 6) Auth endpointi
+## 6) Endpointi autentifikacije
 - `POST /auth/login`
 - `GET /auth/me`
 - `POST /auth/logout`
 - `GET /health`
 
-## 7) Water Objects modul
+## 7) Modul Vodni objekti
 
 ### API endpointi
 - `GET /water-objects`
@@ -58,15 +58,15 @@ npm run dev
 
 ### Frontend
 - Otvori `http://localhost:5173`
-- Login
-- Idi na **Water Objects modul**
+- Prijava
+- Idi na **modul Vodni objekti**
 - Dostupno:
   - lista objekata
-  - create/edit forma
+  - forma za unos/uređivanje
   - brisanje
-  - basic map prikaz geometrije iz `polygon_geojson` (samo prikaz, bez crtanja/editiranja)
+  - osnovni kartografski prikaz geometrije iz `polygon_geojson` (samo prikaz, bez crtanja/editiranja)
 
-## 8) Fish module phase 1
+## 8) Modul Riba - faza 1
 
 ### API endpointi
 - `GET /fish-species`
@@ -81,23 +81,23 @@ npm run dev
 - `GET /fish-stock-current?waterObjectId=...`
 
 ### Seed lookup podaci
-Fish categories seed:
+Seed kategorije ribe:
 - `mjesecnjak`
 - `jednogodisnja_mladj`
 - `dvogodisnja_mladj`
 - `konzum`
 - `matica`
 
-Fish species seed (minimalno za lokalni test):
+Seed vrste ribe (minimalno za lokalni test):
 - `saran`
 - `amur`
 - `stuka`
 
 ### Frontend
-- Login na `http://localhost:5173`
-- Otvori **Fish phase 1 modul**
+- Prijava na `http://localhost:5173`
+- Otvori **modul Riba - faza 1**
 - Dostupno:
-  - Entry form
-  - Control form (više lineova)
-  - Current stock pregled po objektu i vrsti
-  - Entry history pregled (uključuje kategoriju i podrijetlo)
+  - forma za unos događaja
+  - forma za unos kontrole (više redaka)
+  - pregled trenutnog stanja po objektu i vrsti
+  - pregled povijesti unosa (uključuje kategoriju i podrijetlo)

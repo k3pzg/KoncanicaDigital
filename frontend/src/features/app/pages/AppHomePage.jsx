@@ -6,16 +6,16 @@ export function AppHomePage() {
 
   return (
     <section className="card">
-      <h2>Zaštićeni app shell</h2>
+      <h2>Zaštićeno sučelje aplikacije</h2>
       <p>Prijavljen korisnik: <strong>{user?.username}</strong> ({user?.role})</p>
       <p>
-        <Link to="/app/water-objects">Otvori Water Objects modul</Link>
+        <Link to="/app/water-objects">Otvori modul Vodni objekti</Link>
       </p>
       <p>
-        <Link to="/app/fish">Otvori Fish phase 1 modul</Link>
+        <Link to="/app/fish">Otvori modul Riba - faza 1</Link>
       </p>
       <button type="button" onClick={logout}>
-        Logout
+        Odjava
       </button>
     </section>
   );

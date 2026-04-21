@@ -56,7 +56,7 @@ export function WaterObjectsPage() {
     loadItems();
   }, []);
 
-  const submitLabel = useMemo(() => (editingId ? 'Spremi promjene' : 'Dodaj objekt'), [editingId]);
+  const submitLabel = useMemo(() => (editingId ? 'Spremi promjene' : 'Dodaj vodni objekt'), [editingId]);
 
   function handleFieldChange(event) {
     const { name, value, type, checked } = event.target;
@@ -72,7 +72,7 @@ export function WaterObjectsPage() {
 
     const normalizedCode = form.code.trim();
     if (!normalizedCode) {
-      setError('code is required');
+      setError('Polje šifra je obavezno.');
       return;
     }
 
@@ -93,7 +93,7 @@ export function WaterObjectsPage() {
       setEditingId(null);
       await loadItems();
     } catch (submitError) {
-      setError(submitError.message || 'Greška pri spremanju.');
+      setError(submitError.message || 'Greška pri spremanju vodnog objekta.');
     }
   }
 
@@ -125,11 +125,11 @@ export function WaterObjectsPage() {
   return (
     <div className="water-objects-grid">
       <section className="card">
-        <h2>Water objects</h2>
+        <h2>Vodni objekti</h2>
         {error ? <p className="error-text">{error}</p> : null}
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            Code
+            Šifra
             <input
               name="code"
               value={form.code}
@@ -138,7 +138,7 @@ export function WaterObjectsPage() {
             />
           </label>
           <label>
-            Object type
+            Vrsta objekta
             <select name="object_type" value={form.object_type} onChange={handleFieldChange}>
               {objectTypes.map((type) => (
                 <option key={type} value={type}>
@@ -148,35 +148,35 @@ export function WaterObjectsPage() {
             </select>
           </label>
           <label>
-            area_total_m2
+            Ukupna površina (m²)
             <input name="area_total_m2" value={form.area_total_m2} onChange={handleFieldChange} />
           </label>
           <label>
-            area_productive_m2
+            Produktivna površina (m²)
             <input name="area_productive_m2" value={form.area_productive_m2} onChange={handleFieldChange} />
           </label>
           <label>
-            max_depth_m
+            Maksimalna dubina (m)
             <input name="max_depth_m" value={form.max_depth_m} onChange={handleFieldChange} />
           </label>
           <label>
-            max_volume_m3
+            Maksimalni volumen (m³)
             <input name="max_volume_m3" value={form.max_volume_m3} onChange={handleFieldChange} />
           </label>
           <label>
-            centroid_wkt
+            Centroid (WKT)
             <textarea name="centroid_wkt" value={form.centroid_wkt} onChange={handleFieldChange} />
           </label>
           <label>
-            polygon_geojson
+            Poligon (GeoJSON)
             <textarea name="polygon_geojson" value={form.polygon_geojson} onChange={handleFieldChange} />
           </label>
           <label>
-            notes
+            Napomena
             <textarea name="notes" value={form.notes} onChange={handleFieldChange} />
           </label>
           <label>
-            <input name="is_active" type="checkbox" checked={form.is_active} onChange={handleFieldChange} /> is_active
+            <input name="is_active" type="checkbox" checked={form.is_active} onChange={handleFieldChange} /> Aktivan
           </label>
           <button type="submit">{submitLabel}</button>
         </form>
@@ -190,10 +190,10 @@ export function WaterObjectsPage() {
               <strong>{item.code}</strong> ({item.object_type})
               <div className="row-actions">
                 <button type="button" onClick={() => startEdit(item)}>
-                  Edit
+                  Uredi
                 </button>
                 <button type="button" onClick={() => handleDelete(item.id)}>
-                  Delete
+                  Obriši
                 </button>
               </div>
             </li>

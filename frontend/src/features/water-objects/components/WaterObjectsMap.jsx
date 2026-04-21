@@ -115,8 +115,8 @@ export function WaterObjectsMap({ items, selectedObjectId }) {
 
   return (
     <section className="card map-card">
-      <h3>Karta (polygon_geojson)</h3>
-      <div ref={mapContainerRef} className="water-objects-map" role="img" aria-label="Water objects map" />
+      <h3>Karta (GeoJSON poligoni)</h3>
+      <div ref={mapContainerRef} className="water-objects-map" role="img" aria-label="Karta vodnih objekata" />
       {!items.some((item) => normalizeToFeatureOrCollection(parseGeoJsonValue(item.polygon_geojson))) ? (
         <p>Nema geometrije za prikaz.</p>
       ) : null}

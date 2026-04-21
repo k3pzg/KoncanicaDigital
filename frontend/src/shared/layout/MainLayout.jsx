@@ -3,7 +3,7 @@ export function MainLayout({ children }) {
     <div className="app-shell">
       <header className="app-header">
         <h1>KoncanicaDigital</h1>
-        <p>Clean app foundation</p>
+        <p>Čisti temelj aplikacije</p>
       </header>
       <main className="app-content">{children}</main>
     </div>
