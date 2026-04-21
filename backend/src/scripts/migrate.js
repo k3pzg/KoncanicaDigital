@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { getDatabasePool } from '../config/database.js';
@@ -14,19 +14,24 @@ function parseSqlStatements(sql) {
 }
 
 async function runMigration() {
-  const sqlPath = path.resolve(__dirname, '../../sql/001_init.sql');
-  const sql = await readFile(sqlPath, 'utf-8');
-  const statements = parseSqlStatements(sql);
+  const sqlDir = path.resolve(__dirname, '../../sql');
+  const files = (await readdir(sqlDir)).filter((file) => file.endsWith('.sql')).sort();
 
   const db = getDatabasePool();
   const connection = await db.getConnection();
 
   try {
-    for (const statement of statements) {
-      await connection.query(statement);
+    for (const file of files) {
+      const sqlPath = path.join(sqlDir, file);
+      const sql = await readFile(sqlPath, 'utf-8');
+      const statements = parseSqlStatements(sql);
+
+      for (const statement of statements) {
+        await connection.query(statement);
+      }
     }
 
-    console.log('Migration 001_init.sql applied successfully.');
+    console.log('All migrations applied successfully.');
   } finally {
     connection.release();
   }

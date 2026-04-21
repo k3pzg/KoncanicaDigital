@@ -4,75 +4,35 @@
   background: #f8fafc;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+body { margin: 0; }
 
-body {
-  margin: 0;
-}
+.app-shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+.app-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #ffffff; }
+.app-header h1 { margin: 0; font-size: 1.25rem; }
+.app-header p { margin: 0.25rem 0 0; color: #64748b; }
+.app-content { display: grid; place-items: start center; padding: 2rem; }
 
-.app-shell {
-  min-height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr;
-}
-
-.app-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #ffffff;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.app-header p {
-  margin: 0.25rem 0 0;
-  color: #64748b;
-}
-
-.app-content {
-  display: grid;
-  place-items: center;
-  padding: 2rem;
-}
-
-.card {
-  width: min(420px, 100%);
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-}
-
-.login-form {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.login-form label {
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-}
-
+.card { width: min(620px, 100%); background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; }
+.login-form { display: grid; gap: 0.65rem; }
+.login-form label { display: grid; gap: 0.35rem; font-size: 0.9rem; }
 .login-form input,
 .login-form button,
+.login-form select,
+.login-form textarea,
 .card button {
-  padding: 0.65rem 0.75rem;
+  padding: 0.6rem 0.7rem;
   border-radius: 0.5rem;
   border: 1px solid #cbd5e1;
+  font: inherit;
 }
+.login-form textarea { min-height: 70px; }
+button { cursor: pointer; }
+.error-text { margin: 0; color: #b91c1c; font-size: 0.9rem; }
 
-button {
-  cursor: pointer;
-}
-
-.error-text {
-  margin: 0;
-  color: #b91c1c;
-  font-size: 0.9rem;
-}
+.water-objects-grid { display: grid; gap: 1rem; width: min(1280px, 100%); grid-template-columns: 1fr 1fr; }
+.map-card { grid-column: 1 / -1; }
+.map-svg { width: 100%; height: auto; border-radius: 0.5rem; }
+.water-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.water-list li { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center; }
+.row-actions { display: flex; gap: 0.5rem; }
