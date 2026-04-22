@@ -25,6 +25,8 @@ npm run db:seed
 npm run dev
 ```
 
+`npm run dev` koristi `concurrently` (cross-platform), pa radi i u Windows PowerShellu bez Bash/WSL ovisnosti.
+
 - Backend: `http://localhost:3001`
 - Frontend: `http://localhost:5173`
 
