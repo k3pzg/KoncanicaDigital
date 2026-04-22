@@ -398,15 +398,11 @@ async function importFishEntryEvents(connection, summary) {
 
   const [rows] = await connection.query(
     `SELECT id, pond_id, event_type, species, category, count_in, weight_avg_kg, weight_total_kg, event_date, notes
-     FROM ${LEGACY_DB}.${LEGACY_FISH_EVENTS_TABLE}`
+     FROM ${LEGACY_DB}.${LEGACY_FISH_EVENTS_TABLE}
+     WHERE LOWER(event_type) = 'nasad'`
   );
 
   for (const row of rows) {
-    if (normalizeText(row.event_type) !== 'nasad') {
-      summary.fish.skipped += 1;
-      continue;
-    }
-
     if (isLikelyTestRow(row)) {
       summary.fish.skipped += 1;
       continue;
