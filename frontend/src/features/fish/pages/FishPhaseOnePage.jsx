@@ -48,6 +48,47 @@ const initialControlForm = {
   lines: [{ ...initialControlLine }]
 };
 
+function formatDateHr(value) {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return date.toLocaleDateString('hr-HR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function formatNumberHr(value, maximumFractionDigits = 3) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return '-';
+  }
+
+  return parsed.toLocaleString('hr-HR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits
+  });
+}
+
+function getEntryEventTypeLabel(type) {
+  if (type === 'nasad') {
+    return 'Nasad';
+  }
+
+  return 'Dodatni nasad';
+}
+
 export function FishPhaseOnePage() {
   const { token } = useAuth();
   const [waterObjects, setWaterObjects] = useState([]);
@@ -89,7 +130,19 @@ export function FishPhaseOnePage() {
 
   function handleEntryChange(event) {
     const { name, value } = event.target;
-    setEntryForm((prev) => ({ ...prev, [name]: value }));
+    setEntryForm((prev) => {
+      const next = { ...prev, [name]: value };
+
+      if (name === 'source_kind') {
+        if (value === 'interni_objekt') {
+          next.source_label = '';
+        } else {
+          next.source_water_object_id = '';
+        }
+      }
+
+      return next;
+    });
   }
 
   function handleControlHeaderChange(event) {
@@ -130,8 +183,48 @@ export function FishPhaseOnePage() {
     event.preventDefault();
     setError('');
 
+    if (!entryForm.water_object_id || !entryForm.event_date || !entryForm.species_id || !entryForm.category_id) {
+      setError('Popunite sva obavezna polja za unos događaja.');
+      return;
+    }
+
+    const countTotal = Number(entryForm.count_total);
+    const weightTotal = Number(entryForm.weight_total_kg);
+    if (!Number.isFinite(countTotal) || countTotal <= 0) {
+      setError('Ukupno komada mora biti broj veći od 0.');
+      return;
+    }
+    if (!Number.isFinite(weightTotal) || weightTotal <= 0) {
+      setError('Ukupna masa mora biti broj veći od 0.');
+      return;
+    }
+
+    if (entryForm.weight_avg_kg !== '') {
+      const weightAvg = Number(entryForm.weight_avg_kg);
+      if (!Number.isFinite(weightAvg) || weightAvg <= 0) {
+        setError('Prosječna masa mora biti broj veći od 0.');
+        return;
+      }
+    }
+
+    if (entryForm.source_kind === 'interni_objekt' && !entryForm.source_water_object_id) {
+      setError('Odaberite izvorni vodni objekt za interni objekt.');
+      return;
+    }
+
+    if (entryForm.source_kind === 'ostalo' && !entryForm.source_label.trim()) {
+      setError('Upišite opis podrijetla kada je odabrano Ostalo.');
+      return;
+    }
+
     try {
-      await createFishEntryEventRequest(token, entryForm);
+      const payload = {
+        ...entryForm,
+        source_water_object_id: entryForm.source_kind === 'interni_objekt' ? entryForm.source_water_object_id : '',
+        source_label: entryForm.source_kind === 'interni_objekt' ? '' : entryForm.source_label.trim()
+      };
+
+      await createFishEntryEventRequest(token, payload);
       setEntryForm(initialEntryForm);
       await loadLookupsAndViews();
     } catch (submitError) {
@@ -142,6 +235,53 @@ export function FishPhaseOnePage() {
   async function handleControlSubmit(event) {
     event.preventDefault();
     setError('');
+
+    if (!controlForm.water_object_id || !controlForm.control_date) {
+      setError('Popunite sva obavezna zaglavlja kontrole.');
+      return;
+    }
+
+    if (!controlForm.lines.length) {
+      setError('Dodajte barem jedan redak kontrole.');
+      return;
+    }
+
+    for (const [index, line] of controlForm.lines.entries()) {
+      if (!line.species_id) {
+        setError(`Redak ${index + 1}: vrsta ribe je obavezna.`);
+        return;
+      }
+
+      const sampleCount = Number(line.sample_count);
+      const sampleWeightAvg = Number(line.sample_weight_avg_kg);
+      const estimatedCount = Number(line.estimated_count_total);
+      const estimatedWeight = Number(line.estimated_weight_total_kg);
+
+      if (!Number.isFinite(sampleCount) || sampleCount <= 0) {
+        setError(`Redak ${index + 1}: broj u uzorku mora biti veći od 0.`);
+        return;
+      }
+      if (!Number.isFinite(sampleWeightAvg) || sampleWeightAvg <= 0) {
+        setError(`Redak ${index + 1}: prosječna masa uzorka mora biti veća od 0.`);
+        return;
+      }
+      if (!Number.isFinite(estimatedCount) || estimatedCount <= 0) {
+        setError(`Redak ${index + 1}: procijenjen ukupan broj mora biti veći od 0.`);
+        return;
+      }
+      if (!Number.isFinite(estimatedWeight) || estimatedWeight <= 0) {
+        setError(`Redak ${index + 1}: procijenjena ukupna masa mora biti veća od 0.`);
+        return;
+      }
+
+      if (line.sample_weight_total_kg !== '') {
+        const sampleWeightTotal = Number(line.sample_weight_total_kg);
+        if (!Number.isFinite(sampleWeightTotal) || sampleWeightTotal <= 0) {
+          setError(`Redak ${index + 1}: ukupna masa uzorka mora biti veća od 0.`);
+          return;
+        }
+      }
+    }
 
     try {
       await createFishControlEventRequest(token, controlForm);
@@ -180,7 +320,7 @@ export function FishPhaseOnePage() {
             <select name="event_type" value={entryForm.event_type} onChange={handleEntryChange}>
               {entryEventTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type === 'nasad' ? 'Nasad' : type === 'dodatni_nasad' ? 'Dodatni nasad' : 'Premještaj ulaz'}
+                  {getEntryEventTypeLabel(type)}
                 </option>
               ))}
             </select>
@@ -199,9 +339,9 @@ export function FishPhaseOnePage() {
               {categories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
           </label>
-          <label>Ukupno komada<input name="count_total" value={entryForm.count_total} onChange={handleEntryChange} required /></label>
-          <label>Prosječna masa (kg)<input name="weight_avg_kg" value={entryForm.weight_avg_kg} onChange={handleEntryChange} /></label>
-          <label>Ukupna masa (kg)<input name="weight_total_kg" value={entryForm.weight_total_kg} onChange={handleEntryChange} required /></label>
+          <label>Ukupno komada<input type="number" min="0.0001" step="1" name="count_total" value={entryForm.count_total} onChange={handleEntryChange} required /></label>
+          <label>Prosječna masa (kg)<input type="number" min="0.0001" step="0.001" name="weight_avg_kg" value={entryForm.weight_avg_kg} onChange={handleEntryChange} /></label>
+          <label>Ukupna masa (kg)<input type="number" min="0.0001" step="0.001" name="weight_total_kg" value={entryForm.weight_total_kg} onChange={handleEntryChange} required /></label>
           <label>
             Vrsta podrijetla
             <select name="source_kind" value={entryForm.source_kind} onChange={handleEntryChange}>
@@ -221,7 +361,17 @@ export function FishPhaseOnePage() {
               </select>
             </label>
           ) : null}
-          <label>Opis podrijetla<textarea name="source_label" value={entryForm.source_label} onChange={handleEntryChange} /></label>
+          {entryForm.source_kind !== 'interni_objekt' ? (
+            <label>
+              Opis podrijetla
+              <textarea
+                name="source_label"
+                value={entryForm.source_label}
+                onChange={handleEntryChange}
+                placeholder={entryForm.source_kind === 'ostalo' ? 'Unesite opis podrijetla' : 'Npr. naziv dobavljača ili lokacije'}
+              />
+            </label>
+          ) : null}
           <label>Napomena<textarea name="notes" value={entryForm.notes} onChange={handleEntryChange} /></label>
           <button type="submit">Spremi unos</button>
         </form>
@@ -238,8 +388,8 @@ export function FishPhaseOnePage() {
             </select>
           </label>
           <label>Datum kontrole<input type="date" name="control_date" value={controlForm.control_date} onChange={handleControlHeaderChange} required /></label>
-          <label>Uzorkovana površina (m²)<input name="sample_area_m2" value={controlForm.sample_area_m2} onChange={handleControlHeaderChange} /></label>
-          <label>Procijenjena ukupna površina (m²)<input name="estimated_total_area_m2" value={controlForm.estimated_total_area_m2} onChange={handleControlHeaderChange} /></label>
+          <label>Uzorkovana površina (m²)<input type="number" min="0" step="0.01" name="sample_area_m2" value={controlForm.sample_area_m2} onChange={handleControlHeaderChange} /></label>
+          <label>Procijenjena ukupna površina (m²)<input type="number" min="0" step="0.01" name="estimated_total_area_m2" value={controlForm.estimated_total_area_m2} onChange={handleControlHeaderChange} /></label>
           <label>Napomena<textarea name="notes" value={controlForm.notes} onChange={handleControlHeaderChange} /></label>
 
           {controlForm.lines.map((line, index) => (
@@ -252,11 +402,11 @@ export function FishPhaseOnePage() {
                   {species.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                 </select>
               </label>
-              <label>Broj u uzorku<input name="sample_count" value={line.sample_count} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>Ukupna masa uzorka (kg)<input name="sample_weight_total_kg" value={line.sample_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} /></label>
-              <label>Prosječna masa uzorka (kg)<input name="sample_weight_avg_kg" value={line.sample_weight_avg_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>Procijenjen ukupan broj<input name="estimated_count_total" value={line.estimated_count_total} onChange={(event) => handleControlLineChange(index, event)} required /></label>
-              <label>Procijenjena ukupna masa (kg)<input name="estimated_weight_total_kg" value={line.estimated_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Broj u uzorku<input type="number" min="0.0001" step="1" name="sample_count" value={line.sample_count} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Ukupna masa uzorka (kg)<input type="number" min="0.0001" step="0.001" name="sample_weight_total_kg" value={line.sample_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} /></label>
+              <label>Prosječna masa uzorka (kg)<input type="number" min="0.0001" step="0.001" name="sample_weight_avg_kg" value={line.sample_weight_avg_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Procijenjen ukupan broj<input type="number" min="0.0001" step="1" name="estimated_count_total" value={line.estimated_count_total} onChange={(event) => handleControlLineChange(index, event)} required /></label>
+              <label>Procijenjena ukupna masa (kg)<input type="number" min="0.0001" step="0.001" name="estimated_weight_total_kg" value={line.estimated_weight_total_kg} onChange={(event) => handleControlLineChange(index, event)} required /></label>
               <label>Napomena<textarea name="notes" value={line.notes} onChange={(event) => handleControlLineChange(index, event)} /></label>
               <button type="button" onClick={() => removeControlLine(index)}>Ukloni redak</button>
             </fieldset>
@@ -286,7 +436,7 @@ export function FishPhaseOnePage() {
             <tbody>
               {stockRows.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.water_object_code}</td><td>{item.species_label}</td><td>{item.count_total}</td><td>{item.weight_avg_kg}</td><td>{item.weight_total_kg}</td><td>{item.last_refresh_type === 'entry' ? 'Unos' : item.last_refresh_type === 'control' ? 'Kontrola' : 'Ručno'}</td><td>{item.last_refresh_date?.slice(0, 10)}</td>
+                  <td>{item.water_object_code}</td><td>{item.species_label}</td><td>{formatNumberHr(item.count_total, 0)}</td><td>{formatNumberHr(item.weight_avg_kg)}</td><td>{formatNumberHr(item.weight_total_kg)}</td><td>{item.last_refresh_type === 'entry' ? 'Nasad' : item.last_refresh_type === 'control' ? 'Kontrola' : 'Ručno'}</td><td>{formatDateHr(item.last_refresh_date)}</td>
                 </tr>
               ))}
             </tbody>
@@ -306,15 +456,15 @@ export function FishPhaseOnePage() {
             <tbody>
               {entryEvents.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.event_date?.slice(0, 10)}</td>
+                  <td>{formatDateHr(item.event_date)}</td>
                   <td>{item.water_object_code}</td>
-                  <td>{item.event_type === 'nasad' ? 'Nasad' : item.event_type === 'dodatni_nasad' ? 'Dodatni nasad' : 'Premještaj ulaz'}</td>
+                  <td>{getEntryEventTypeLabel(item.event_type)}</td>
                   <td>{item.species_label}</td>
                   <td>{item.category_label}</td>
-                  <td>{item.count_total}</td>
-                  <td>{item.weight_total_kg}</td>
+                  <td>{formatNumberHr(item.count_total, 0)}</td>
+                  <td>{formatNumberHr(item.weight_total_kg)}</td>
                   <td>{item.source_water_object_code ?? (item.source_kind === 'interni_objekt' ? 'Interni objekt' : item.source_kind === 'mrijestiliste' ? 'Mrijestilište' : item.source_kind === 'uvoz' ? 'Uvoz' : 'Ostalo')}</td>
-                  <td>{item.source_label}</td>
+                  <td>{item.source_label || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -327,7 +477,7 @@ export function FishPhaseOnePage() {
         <ul className="water-list">
           {controlEvents.map((event) => (
             <li key={event.id}>
-              <strong>{event.control_date?.slice(0, 10)}</strong> · {event.water_object_code}
+              <strong>{formatDateHr(event.control_date)}</strong> · {event.water_object_code}
             </li>
           ))}
         </ul>
