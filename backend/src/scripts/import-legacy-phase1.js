@@ -37,6 +37,8 @@ const CATEGORY_MAP = {
   matice: 'matica'
 };
 
+let legacyTableColumnsCache = new Map();
+
 function normalizeText(value) {
   return String(value ?? '')
     .toLowerCase()
@@ -48,6 +50,35 @@ function normalizeText(value) {
 
 function normalizeCodeLookup(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+async function getLegacyTableColumns(connection, tableName) {
+  const cacheKey = `${LEGACY_DB}.${tableName}`;
+  if (legacyTableColumnsCache.has(cacheKey)) {
+    return legacyTableColumnsCache.get(cacheKey);
+  }
+
+  const [rows] = await connection.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = ?`,
+    [LEGACY_DB, tableName]
+  );
+
+  const columns = new Set(rows.map((row) => String(row.COLUMN_NAME)));
+  legacyTableColumnsCache.set(cacheKey, columns);
+  return columns;
+}
+
+function pickLegacyColumn(columns, candidates, requiredLabel) {
+  for (const candidate of candidates) {
+    if (columns.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`Legacy tablica nema očekivani stupac za: ${requiredLabel} (kandidati: ${candidates.join(', ')})`);
 }
 
 function toNumberOrNull(value) {
@@ -238,8 +269,30 @@ function extractSourceFromNotes(notes, objectsByCodeLookup) {
 }
 
 async function importWaterObjects(connection, summary) {
+  const columns = await getLegacyTableColumns(connection, LEGACY_PONDS_TABLE);
+  const pondIdCol = pickLegacyColumn(columns, ['pond_id', 'id'], 'pond ID');
+  const pondNameCol = pickLegacyColumn(columns, ['pond_name', 'name', 'pond_code'], 'pond naziv');
+  const pondTypeCol = pickLegacyColumn(columns, ['pond_type', 'type'], 'pond tip');
+  const maxAreaCol = pickLegacyColumn(columns, ['max_area_m2', 'max_area', 'area_m2'], 'maksimalna površina');
+  const maxDepthCol = pickLegacyColumn(columns, ['max_depth', 'max_depth_m', 'depth'], 'maksimalna dubina');
+  const maxVolumeCol = pickLegacyColumn(columns, ['max_volume_m3', 'max_volume', 'volume_m3'], 'maksimalni volumen');
+  const centroidCol = pickLegacyColumn(columns, ['centroid_wkt', 'centroid'], 'centroid');
+  const polygonCol = pickLegacyColumn(columns, ['polygon_wkt', 'polygon_geojson', 'polygon'], 'polygon');
+  const isActiveCol = pickLegacyColumn(columns, ['is_active', 'active'], 'status aktivnosti');
+  const notesCol = pickLegacyColumn(columns, ['napomena', 'notes', 'note'], 'napomena');
+
   const [rows] = await connection.query(
-    `SELECT id, pond_name, pond_type, max_area_m2, max_depth, max_volume_m3, centroid_wkt, polygon_wkt, is_active, napomena
+    `SELECT
+        ${pondIdCol} AS pond_id,
+        ${pondNameCol} AS pond_name,
+        ${pondTypeCol} AS pond_type,
+        ${maxAreaCol} AS max_area_m2,
+        ${maxDepthCol} AS max_depth,
+        ${maxVolumeCol} AS max_volume_m3,
+        ${centroidCol} AS centroid_wkt,
+        ${polygonCol} AS polygon_wkt,
+        ${isActiveCol} AS is_active,
+        ${notesCol} AS napomena
      FROM ${LEGACY_DB}.${LEGACY_PONDS_TABLE}`
   );
 
@@ -301,12 +354,19 @@ async function importWaterObjects(connection, summary) {
 }
 
 async function buildFishImportContext(connection) {
-  const [pondRows] = await connection.query(`SELECT id, pond_name FROM ${LEGACY_DB}.${LEGACY_PONDS_TABLE}`);
+  const pondColumns = await getLegacyTableColumns(connection, LEGACY_PONDS_TABLE);
+  const pondIdCol = pickLegacyColumn(pondColumns, ['pond_id', 'id'], 'pond ID');
+  const pondNameCol = pickLegacyColumn(pondColumns, ['pond_name', 'name', 'pond_code'], 'pond naziv');
+
+  const [pondRows] = await connection.query(
+    `SELECT ${pondIdCol} AS pond_id, ${pondNameCol} AS pond_name
+     FROM ${LEGACY_DB}.${LEGACY_PONDS_TABLE}`
+  );
   const [objectRows] = await connection.query('SELECT id, code FROM water_objects');
   const [speciesRows] = await connection.query('SELECT id, code FROM fish_species');
   const [categoryRows] = await connection.query('SELECT id, code FROM fish_categories');
 
-  const legacyPondToCode = new Map(pondRows.map((row) => [row.id, String(row.pond_name ?? '').trim()]));
+  const legacyPondToCode = new Map(pondRows.map((row) => [row.pond_id, String(row.pond_name ?? '').trim()]));
   const objectIdByCode = new Map(objectRows.map((row) => [String(row.code ?? '').trim(), row.id]));
   const objectByNormalizedCode = new Map(objectRows.map((row) => [normalizeCodeLookup(row.code), row.id]));
 
