@@ -3,6 +3,7 @@ import { getDatabasePool } from '../config/database.js';
 const LEGACY_DB = process.env.LEGACY_DB_NAME ?? 'energovi_koncanicasmart';
 const LEGACY_PONDS_TABLE = process.env.LEGACY_PONDS_TABLE ?? 'ponds';
 const LEGACY_FISH_EVENTS_TABLE = process.env.LEGACY_FISH_EVENTS_TABLE ?? 'fish_events';
+const FALLBACK_CATEGORY_CODE = 'unknown';
 
 const args = new Set(process.argv.slice(2));
 const shouldApply = args.has('--apply');
@@ -446,12 +447,19 @@ async function buildFishImportContext(connection) {
   const objectIdByCode = new Map(objectRows.map((row) => [String(row.code ?? '').trim(), row.id]));
   const objectByNormalizedCode = new Map(objectRows.map((row) => [normalizeCodeLookup(row.code), row.id]));
 
+  const categoryIdByCode = new Map(categoryRows.map((row) => [row.code, row.id]));
+  const fallbackCategoryId = categoryIdByCode.get(FALLBACK_CATEGORY_CODE);
+  if (!fallbackCategoryId) {
+    throw new Error(`Missing required fish category code: ${FALLBACK_CATEGORY_CODE}`);
+  }
+
   return {
     legacyPondToCode,
     objectIdByCode,
     objectByNormalizedCode,
     speciesIdByCode: new Map(speciesRows.map((row) => [row.code, row.id])),
-    categoryIdByCode: new Map(categoryRows.map((row) => [row.code, row.id]))
+    categoryIdByCode,
+    fallbackCategoryId
   };
 }
 
@@ -553,7 +561,7 @@ async function importFishEntryEvents(connection, summary) {
     const speciesMapped = mapSpeciesCode(row.species);
     const categoryMapped = mapCategoryCode(row.category);
     const speciesCode = speciesMapped.code;
-    const categoryCode = categoryMapped.code;
+    const categoryCode = categoryMapped.code ?? FALLBACK_CATEGORY_CODE;
     const hasCategory = hasCategoryValue(row.category);
 
     if (!waterObjectId || !speciesCode || (hasCategory && !categoryCode)) {
@@ -583,8 +591,8 @@ async function importFishEntryEvents(connection, summary) {
     }
 
     const speciesId = context.speciesIdByCode.get(speciesCode);
-    const categoryId = categoryCode ? context.categoryIdByCode.get(categoryCode) : null;
-    if (!speciesId || (categoryCode && !categoryId)) {
+    const categoryId = context.categoryIdByCode.get(categoryCode) ?? context.fallbackCategoryId;
+    if (!speciesId || !categoryId) {
       summary.fish.skipped += 1;
       incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
       if (summary.fish.skippedRows.length < 20) {
