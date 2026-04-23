@@ -48,6 +48,20 @@ function normalizeText(value) {
     .replace(/^_+|_+$/g, '');
 }
 
+function normalizeLegacyLabel(value) {
+  return String(value ?? '')
+    .replace(/\uFFFD/g, '?')
+    .replace(/\?+/g, '?')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9? ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function normalizeCodeLookup(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -175,58 +189,69 @@ function isLikelyTestRow(row) {
 }
 
 function mapSpeciesCode(speciesText) {
-  const normalized = normalizeText(speciesText);
-  if (normalized.includes('linjak')) {
-    return null;
+  const normalized = normalizeLegacyLabel(speciesText);
+  const collapsed = normalized.replace(/\s+/g, '');
+
+  if (!collapsed) {
+    return { code: null, reason: 'species_empty' };
   }
-  if (normalized.includes('tolstolobik') && normalized.includes('sivi')) {
-    return 'tolstolobik_sivi';
+  if (collapsed.includes('linjak')) {
+    return { code: null, reason: 'species_linjak_unmapped' };
   }
-  if (normalized.includes('tolstolobik') && normalized.includes('bijeli')) {
-    return 'tolstolobik_bijeli';
+  if (collapsed.includes('tolstolobik') && collapsed.includes('sivi')) {
+    return { code: 'tolstolobik_sivi', reason: null };
   }
-  if (normalized.includes('saran')) {
-    return 'saran_goli';
+  if (collapsed.includes('tolstolobik') && collapsed.includes('bijeli')) {
+    return { code: 'tolstolobik_bijeli', reason: null };
   }
-  if (normalized.includes('amur')) {
-    return 'amur';
+  if (collapsed.includes('saran') || collapsed.includes('aran') || collapsed.includes('?aran')) {
+    return { code: 'saran_goli', reason: null };
   }
-  if (normalized.includes('som')) {
-    return 'som';
+  if (collapsed.includes('amur')) {
+    return { code: 'amur', reason: null };
   }
-  if (normalized.includes('smud')) {
-    return 'smud';
+  if (collapsed.includes('som')) {
+    return { code: 'som', reason: null };
   }
-  if (normalized.includes('stuka')) {
-    return 'stuka';
+  if (collapsed.includes('smud') || collapsed.startsWith('smu')) {
+    return { code: 'smud', reason: null };
+  }
+  if (collapsed.includes('stuka') || collapsed.includes('tuka') || collapsed.startsWith('?tuka')) {
+    return { code: 'stuka', reason: null };
   }
 
-  return SPECIES_MAP[normalized] ?? null;
+  return { code: SPECIES_MAP[normalizeText(normalized)] ?? null, reason: 'species_unmapped' };
 }
 
 function mapCategoryCode(categoryText) {
-  const normalized = normalizeText(categoryText);
-  if (!normalized) {
-    return null;
+  const normalized = normalizeLegacyLabel(categoryText);
+  const collapsed = normalized.replace(/\s+/g, '');
+
+  if (!collapsed || collapsed === 'null') {
+    return { code: null, reason: 'category_empty_or_null' };
   }
 
-  if (normalized.includes('jednogodis')) {
-    return 'jednogodisnja_mladj';
+  if (collapsed.includes('jednogod') && collapsed.includes('mla')) {
+    return { code: 'jednogodisnja_mladj', reason: null };
   }
-  if (normalized.includes('dvogodis')) {
-    return 'dvogodisnja_mladj';
+  if (collapsed.includes('dvogod') && collapsed.includes('mla')) {
+    return { code: 'dvogodisnja_mladj', reason: null };
   }
-  if (normalized.includes('mjesecnjak')) {
-    return 'mjesecnjak';
+  if (collapsed.includes('mjes') && collapsed.includes('njak')) {
+    return { code: 'mjesecnjak', reason: null };
   }
-  if (normalized.includes('konzum')) {
-    return 'konzum';
+  if (collapsed.includes('konzum')) {
+    return { code: 'konzum', reason: null };
   }
-  if (normalized.includes('matic')) {
-    return 'matica';
+  if (collapsed.includes('matic')) {
+    return { code: 'matica', reason: null };
   }
 
-  return CATEGORY_MAP[normalized] ?? null;
+  return { code: CATEGORY_MAP[normalizeText(normalized)] ?? null, reason: 'category_unmapped' };
+}
+
+function incrementReason(counter, reason) {
+  counter[reason] = (counter[reason] ?? 0) + 1;
 }
 
 function extractSourceFromNotes(notes, objectsByCodeLookup) {
@@ -302,6 +327,15 @@ async function importWaterObjects(connection, summary) {
 
     if (!code || !objectType) {
       summary.water.skipped += 1;
+      const reason = !code ? 'missing_code' : 'unmapped_object_type';
+      incrementReason(summary.water.skippedReasons, reason);
+      if (summary.water.skippedRows.length < 8) {
+        summary.water.skippedRows.push({
+          pond_name: row.pond_name ?? null,
+          pond_type: row.pond_type ?? null,
+          reason
+        });
+      }
       continue;
     }
 
@@ -465,16 +499,37 @@ async function importFishEntryEvents(connection, summary) {
   for (const row of rows) {
     if (isLikelyTestRow(row)) {
       summary.fish.skipped += 1;
+      incrementReason(summary.fish.skippedReasons, 'test_row');
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({ id: row.id, species: row.species, category: row.category, reason: 'test_row' });
+      }
       continue;
     }
 
     const pondCode = context.legacyPondToCode.get(row.pond_id);
     const waterObjectId = context.objectIdByCode.get(pondCode);
-    const speciesCode = mapSpeciesCode(row.species);
-    const categoryCode = mapCategoryCode(row.category);
+    const speciesMapped = mapSpeciesCode(row.species);
+    const categoryMapped = mapCategoryCode(row.category);
+    const speciesCode = speciesMapped.code;
+    const categoryCode = categoryMapped.code;
 
     if (!waterObjectId || !speciesCode || !categoryCode) {
       summary.fish.skipped += 1;
+      const reasons = [];
+      if (!waterObjectId) reasons.push('water_object_not_found');
+      if (!speciesCode) reasons.push(speciesMapped.reason ?? 'species_unmapped');
+      if (!categoryCode) reasons.push(categoryMapped.reason ?? 'category_unmapped');
+      reasons.forEach((reason) => incrementReason(summary.fish.skippedReasons, reason));
+
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({
+          id: row.id,
+          species: row.species,
+          category: row.category,
+          reason: reasons.join(', ')
+        });
+      }
+
       if (!speciesCode) {
         summary.fish.unmappedSpecies.add(String(row.species ?? 'NULL'));
       }
@@ -488,6 +543,15 @@ async function importFishEntryEvents(connection, summary) {
     const categoryId = context.categoryIdByCode.get(categoryCode);
     if (!speciesId || !categoryId) {
       summary.fish.skipped += 1;
+      incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({
+          id: row.id,
+          species: row.species,
+          category: row.category,
+          reason: 'target_lookup_missing'
+        });
+      }
       if (!speciesId) {
         summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
       }
@@ -504,6 +568,15 @@ async function importFishEntryEvents(connection, summary) {
 
     if (!countTotal || countTotal <= 0 || !weightTotal || weightTotal <= 0 || !row.event_date) {
       summary.fish.skipped += 1;
+      incrementReason(summary.fish.skippedReasons, 'invalid_numeric_or_date');
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({
+          id: row.id,
+          species: row.species,
+          category: row.category,
+          reason: 'invalid_numeric_or_date'
+        });
+      }
       continue;
     }
 
@@ -527,6 +600,15 @@ async function importFishEntryEvents(connection, summary) {
     const exists = await hasMatchingFishEntryEvent(connection, payload);
     if (exists) {
       summary.fish.skipped += 1;
+      incrementReason(summary.fish.skippedReasons, 'duplicate_event');
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({
+          id: row.id,
+          species: row.species,
+          category: row.category,
+          reason: 'duplicate_event'
+        });
+      }
       continue;
     }
 
@@ -564,13 +646,17 @@ function createSummary() {
     phase,
     water: {
       imported: 0,
-      skipped: 0
+      skipped: 0,
+      skippedReasons: {},
+      skippedRows: []
     },
     fish: {
       imported: 0,
       skipped: 0,
       unmappedSpecies: new Set(),
-      unmappedCategories: new Set()
+      unmappedCategories: new Set(),
+      skippedReasons: {},
+      skippedRows: []
     }
   };
 }
@@ -585,6 +671,10 @@ function printSummary(summary) {
   console.log(`Fish rows skipped: ${summary.fish.skipped}`);
   console.log('Unmapped species:', [...summary.fish.unmappedSpecies]);
   console.log('Unmapped categories:', [...summary.fish.unmappedCategories]);
+  console.log('Water skip reasons:', summary.water.skippedReasons);
+  console.log('Fish skip reasons:', summary.fish.skippedReasons);
+  console.log('Water skipped rows (max 8):', summary.water.skippedRows);
+  console.log('Fish skipped rows (top 20):', summary.fish.skippedRows);
 }
 
 async function run() {
