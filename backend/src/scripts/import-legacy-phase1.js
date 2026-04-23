@@ -104,7 +104,29 @@ function toNumberOrNull(value) {
 }
 
 function mapObjectType(value) {
-  const key = normalizeText(value);
+  const normalized = normalizeLegacyLabel(value);
+  const collapsed = normalized.replace(/\s+/g, '').replace(/\?/g, '');
+  const key = normalizeText(normalized).replace(/_/g, '');
+
+  if (collapsed.includes('ribnjak') || key.includes('ribnjak')) {
+    return 'ribnjak';
+  }
+  if (collapsed.includes('bazen') || key.includes('bazen')) {
+    return 'bazen';
+  }
+  if (collapsed.includes('kanal') || key.includes('kanal')) {
+    return 'kanal';
+  }
+  if (collapsed.includes('zimovnik') || key.includes('zimovnik')) {
+    return 'zimovnik';
+  }
+  if (collapsed.includes('rastiliste') || collapsed.includes('rastilite') || key.includes('rastiliste') || key.includes('rastilite')) {
+    return 'rastiliste';
+  }
+  if (collapsed.includes('maticnjak') || collapsed.includes('matinjak') || key.includes('maticnjak') || key.includes('matinjak')) {
+    return 'maticnjak';
+  }
+
   return OBJECT_TYPE_MAP[key] ?? null;
 }
 
@@ -507,7 +529,7 @@ async function importFishEntryEvents(connection, summary) {
     }
 
     const pondCode = context.legacyPondToCode.get(row.pond_id);
-    const waterObjectId = context.objectIdByCode.get(pondCode);
+    const waterObjectId = context.objectIdByCode.get(pondCode) ?? context.objectByNormalizedCode.get(normalizeCodeLookup(pondCode));
     const speciesMapped = mapSpeciesCode(row.species);
     const categoryMapped = mapCategoryCode(row.category);
     const speciesCode = speciesMapped.code;
