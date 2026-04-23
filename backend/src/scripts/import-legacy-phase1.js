@@ -606,7 +606,7 @@ async function importFishEntryEvents(connection, summary) {
       if (!speciesId) {
         summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
       }
-      if (!categoryId) {
+      if (categoryCode && !categoryId) {
         summary.fish.unmappedCategories.add(`${row.category} -> ${categoryCode} (missing target)`);
       }
       continue;
