@@ -23,6 +23,7 @@ const SPECIES_MAP = {
   amur: 'amur',
   tolstolobik_sivi: 'tolstolobik_sivi',
   tolstolobik_bijeli: 'tolstolobik_bijeli',
+  linjak: 'linjak',
   som: 'som',
   smud: 'smud',
   stuka: 'stuka'
@@ -218,7 +219,7 @@ function mapSpeciesCode(speciesText) {
     return { code: null, reason: 'species_empty' };
   }
   if (collapsed.includes('linjak')) {
-    return { code: null, reason: 'species_linjak_unmapped' };
+    return { code: 'linjak', reason: null };
   }
   if (collapsed.includes('tolstolobik') && collapsed.includes('sivi')) {
     return { code: 'tolstolobik_sivi', reason: null };
@@ -250,7 +251,7 @@ function mapCategoryCode(categoryText) {
   const collapsed = normalized.replace(/\s+/g, '');
 
   if (!collapsed || collapsed === 'null') {
-    return { code: null, reason: 'category_empty_or_null' };
+    return { code: null, reason: null };
   }
 
   if (collapsed.includes('jednogod') && collapsed.includes('mla')) {
@@ -270,6 +271,25 @@ function mapCategoryCode(categoryText) {
   }
 
   return { code: CATEGORY_MAP[normalizeText(normalized)] ?? null, reason: 'category_unmapped' };
+}
+
+function auditInvalidFishRow(row, pondCode, invalidFields, reason) {
+  console.log('[FISH_IMPORT_AUDIT] invalid_row', {
+    legacy_id: row.id ?? null,
+    water_object: pondCode ?? null,
+    species: row.species ?? null,
+    category: row.category ?? null,
+    event_date: row.event_date ?? null,
+    count_in: row.count_in ?? null,
+    weight_avg_kg: row.weight_avg_kg ?? null,
+    weight_total_kg: row.weight_total_kg ?? null,
+    invalid_fields: invalidFields,
+    reason
+  });
+}
+
+function hasCategoryValue(value) {
+  return String(value ?? '').trim() !== '';
 }
 
 function incrementReason(counter, reason) {
@@ -534,13 +554,14 @@ async function importFishEntryEvents(connection, summary) {
     const categoryMapped = mapCategoryCode(row.category);
     const speciesCode = speciesMapped.code;
     const categoryCode = categoryMapped.code;
+    const hasCategory = hasCategoryValue(row.category);
 
-    if (!waterObjectId || !speciesCode || !categoryCode) {
+    if (!waterObjectId || !speciesCode || (hasCategory && !categoryCode)) {
       summary.fish.skipped += 1;
       const reasons = [];
       if (!waterObjectId) reasons.push('water_object_not_found');
       if (!speciesCode) reasons.push(speciesMapped.reason ?? 'species_unmapped');
-      if (!categoryCode) reasons.push(categoryMapped.reason ?? 'category_unmapped');
+      if (hasCategory && !categoryCode) reasons.push(categoryMapped.reason ?? 'category_unmapped');
       reasons.forEach((reason) => incrementReason(summary.fish.skippedReasons, reason));
 
       if (summary.fish.skippedRows.length < 20) {
@@ -555,15 +576,15 @@ async function importFishEntryEvents(connection, summary) {
       if (!speciesCode) {
         summary.fish.unmappedSpecies.add(String(row.species ?? 'NULL'));
       }
-      if (!categoryCode) {
+      if (hasCategory && !categoryCode) {
         summary.fish.unmappedCategories.add(String(row.category ?? 'NULL'));
       }
       continue;
     }
 
     const speciesId = context.speciesIdByCode.get(speciesCode);
-    const categoryId = context.categoryIdByCode.get(categoryCode);
-    if (!speciesId || !categoryId) {
+    const categoryId = categoryCode ? context.categoryIdByCode.get(categoryCode) : null;
+    if (!speciesId || (categoryCode && !categoryId)) {
       summary.fish.skipped += 1;
       incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
       if (summary.fish.skippedRows.length < 20) {
@@ -577,7 +598,7 @@ async function importFishEntryEvents(connection, summary) {
       if (!speciesId) {
         summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
       }
-      if (!categoryId) {
+      if (categoryCode && !categoryId) {
         summary.fish.unmappedCategories.add(`${row.category} -> ${categoryCode} (missing target)`);
       }
       continue;
@@ -588,17 +609,30 @@ async function importFishEntryEvents(connection, summary) {
     const weightAvgRaw = toNumberOrNull(row.weight_avg_kg);
     const notes = row.notes ? String(row.notes).trim() : null;
 
-    if (!countTotal || countTotal <= 0 || !weightTotal || weightTotal <= 0 || !row.event_date) {
+    const invalidFields = [];
+    if (!countTotal || countTotal <= 0) invalidFields.push('count_in');
+    if (!weightTotal || weightTotal <= 0) invalidFields.push('weight_total_kg');
+    if (!row.event_date) invalidFields.push('event_date');
+
+    if (invalidFields.length) {
       summary.fish.skipped += 1;
       incrementReason(summary.fish.skippedReasons, 'invalid_numeric_or_date');
       if (summary.fish.skippedRows.length < 20) {
         summary.fish.skippedRows.push({
           id: row.id,
+          pond: pondCode ?? null,
           species: row.species,
           category: row.category,
+          event_date: row.event_date ?? null,
+          count_in: row.count_in ?? null,
+          weight_avg_kg: row.weight_avg_kg ?? null,
+          weight_total_kg: row.weight_total_kg ?? null,
+          invalid_fields: invalidFields,
           reason: 'invalid_numeric_or_date'
         });
       }
+
+      auditInvalidFishRow(row, pondCode, invalidFields, 'invalid_numeric_or_date');
       continue;
     }
 
