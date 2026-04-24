@@ -270,7 +270,7 @@ export function FishStockPage() {
                   <tbody>
                     {group.rows.map((row, index) => (
                       <tr key={`${group.waterObjectCode}-${row.species_code}-${index}`} className="fish-stock-data-row">
-                        <td>{formatSpeciesName(row.species_code ?? row.species_name)}</td>
+                        <td>{row.species_name ?? formatSpeciesName(row.species_code)}</td>
                         <td>{row.category_name}</td>
                         <td className="numeric-cell">{formatInteger(row.count_total)}</td>
                         <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 2)}</td>
