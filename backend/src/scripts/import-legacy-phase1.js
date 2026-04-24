@@ -591,7 +591,9 @@ async function importFishEntryEvents(connection, summary) {
     }
 
     const speciesId = context.speciesIdByCode.get(speciesCode);
-    const categoryId = context.categoryIdByCode.get(categoryCode) ?? context.fallbackCategoryId;
+    const categoryId =
+      context.categoryIdByCode.get(categoryCode) ??
+      context.fallbackCategoryId;
     if (!speciesId || !categoryId) {
       summary.fish.skipped += 1;
       incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
