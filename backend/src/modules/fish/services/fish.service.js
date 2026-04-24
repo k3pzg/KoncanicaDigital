@@ -7,6 +7,7 @@ import {
   listFishControlEvents,
   listFishEntryEvents,
   listFishSpecies,
+  listFishStockAggregate,
   listFishStockCurrent
 } from '../repositories/fish.repository.js';
 import {
@@ -65,4 +66,8 @@ export async function addFishControlEvent(payload) {
 export async function getFishStock(waterObjectId) {
   const parsedWaterObjectId = waterObjectId ? Number(waterObjectId) : null;
   return listFishStockCurrent(parsedWaterObjectId);
+}
+
+export async function getFishStockAggregate() {
+  return listFishStockAggregate();
 }
