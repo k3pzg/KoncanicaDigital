@@ -9,6 +9,7 @@ import {
   getFishEntryEventById,
   getFishEntryEvents,
   getFishSpecies,
+  getFishStockAggregate,
   getFishStock
 } from '../services/fish.service.js';
 
@@ -74,4 +75,13 @@ fishRouter.post('/fish-control-events', async (request, response) => {
 fishRouter.get('/fish-stock-current', async (request, response) => {
   const items = await getFishStock(request.query.waterObjectId);
   return response.status(200).json({ items });
+});
+
+fishRouter.get('/api/fish/stock', async (_, response) => {
+  try {
+    const items = await getFishStockAggregate();
+    return response.status(200).json(items);
+  } catch {
+    return response.status(500).json({ message: 'Failed to load fish stock.' });
+  }
 });
