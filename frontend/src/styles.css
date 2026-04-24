@@ -161,3 +161,17 @@ button { cursor: pointer; }
   font-size: 1.1rem;
   font-weight: 700;
 }
+
+.fish-entry-row {
+  border: 1px solid #dbeafe;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.fish-entry-row legend {
+  padding: 0 0.35rem;
+  color: #1e293b;
+  font-weight: 600;
+}

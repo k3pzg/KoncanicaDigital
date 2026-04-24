@@ -1,6 +1,7 @@
 import {
   createFishControlEvent,
   createFishEntryEvent,
+  createFishEntryEvents,
   findFishControlEventById,
   findFishEntryEventById,
   listFishCategories,
@@ -13,6 +14,7 @@ import {
 import {
   normalizeControlPayload,
   normalizeEntryPayload,
+  normalizeEntryPayloads,
   validateControlPayload,
   validateEntryPayload
 } from '../validation/fish.validation.js';
@@ -34,6 +36,10 @@ export async function getFishEntryEventById(id) {
 }
 
 export async function addFishEntryEvent(payload) {
+  if (Array.isArray(payload?.entries)) {
+    return addFishEntryEvents(payload);
+  }
+
   const normalized = normalizeEntryPayload(payload);
   const validationError = validateEntryPayload(normalized);
   if (validationError) {
@@ -42,6 +48,23 @@ export async function addFishEntryEvent(payload) {
 
   const id = await createFishEntryEvent(normalized);
   return findFishEntryEventById(id);
+}
+
+export async function addFishEntryEvents(payload) {
+  const normalizedEntries = normalizeEntryPayloads(payload);
+  if (!normalizedEntries.length) {
+    throw new Error('at least one entry is required');
+  }
+
+  for (const [index, entry] of normalizedEntries.entries()) {
+    const validationError = validateEntryPayload(entry);
+    if (validationError) {
+      throw new Error(`entries[${index}]: ${validationError}`);
+    }
+  }
+
+  const ids = await createFishEntryEvents(normalizedEntries);
+  return Promise.all(ids.map((id) => findFishEntryEventById(id)));
 }
 
 export async function getFishControlEvents() {

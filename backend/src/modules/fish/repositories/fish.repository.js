@@ -56,44 +56,161 @@ export async function findFishEntryEventById(id) {
   return rows[0] ? mapEntryRow(rows[0]) : null;
 }
 
-export async function createFishEntryEvent(payload) {
+async function findExistingSpeciesByLabel(connection, label) {
+  const [rows] = await connection.query(
+    'SELECT id FROM fish_species WHERE LOWER(TRIM(label)) = LOWER(TRIM(?)) LIMIT 1',
+    [label]
+  );
+
+  return rows[0]?.id ?? null;
+}
+
+async function findExistingCategoryByLabel(connection, label) {
+  const [rows] = await connection.query(
+    'SELECT id FROM fish_categories WHERE LOWER(TRIM(label)) = LOWER(TRIM(?)) LIMIT 1',
+    [label]
+  );
+
+  return rows[0]?.id ?? null;
+}
+
+function slugifyForCode(value) {
+  const normalized = String(value ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return normalized.slice(0, 48) || 'custom';
+}
+
+async function buildUniqueGeneratedCode(connection, tableName, prefix, label) {
+  const base = `${prefix}_${slugifyForCode(label)}`;
+  let candidate = base;
+  let suffix = 2;
+
+  while (true) {
+    const [rows] = await connection.query(`SELECT id FROM ${tableName} WHERE code = ? LIMIT 1`, [candidate]);
+    if (!rows[0]) {
+      return candidate;
+    }
+
+    candidate = `${base}_${suffix}`;
+    suffix += 1;
+  }
+}
+
+async function resolveSpeciesId(connection, payload) {
+  if (Number.isInteger(payload.species_id) && payload.species_id > 0) {
+    return payload.species_id;
+  }
+
+  if (!payload.new_species_label) {
+    throw new Error('species_id or new_species_label is required');
+  }
+
+  const existingId = await findExistingSpeciesByLabel(connection, payload.new_species_label);
+  if (existingId) {
+    return existingId;
+  }
+
+  const code = await buildUniqueGeneratedCode(connection, 'fish_species', 'custom_species', payload.new_species_label);
+  const [result] = await connection.query(
+    'INSERT INTO fish_species (code, label, is_active) VALUES (?, ?, 1)',
+    [code, payload.new_species_label]
+  );
+
+  return result.insertId;
+}
+
+async function resolveCategoryId(connection, payload) {
+  if (Number.isInteger(payload.category_id) && payload.category_id > 0) {
+    return payload.category_id;
+  }
+
+  if (!payload.new_category_label) {
+    throw new Error('category_id or new_category_label is required');
+  }
+
+  const existingId = await findExistingCategoryByLabel(connection, payload.new_category_label);
+  if (existingId) {
+    return existingId;
+  }
+
+  const code = await buildUniqueGeneratedCode(connection, 'fish_categories', 'custom_category', payload.new_category_label);
+  const [result] = await connection.query(
+    'INSERT INTO fish_categories (code, label, sort_order, is_active) VALUES (?, ?, 999, 1)',
+    [code, payload.new_category_label]
+  );
+
+  return result.insertId;
+}
+
+async function insertFishEntryEvent(connection, payload) {
+  const speciesId = await resolveSpeciesId(connection, payload);
+  const categoryId = await resolveCategoryId(connection, payload);
+
+  const [result] = await connection.query(
+    `INSERT INTO fish_entry_events (
+      water_object_id, event_date, event_type, species_id, category_id, count_total,
+      weight_avg_kg, weight_total_kg, source_kind, source_water_object_id, source_label, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      payload.water_object_id,
+      payload.event_date,
+      payload.event_type,
+      speciesId,
+      categoryId,
+      payload.count_total,
+      payload.weight_avg_kg,
+      payload.weight_total_kg,
+      payload.source_kind,
+      payload.source_water_object_id,
+      payload.source_label,
+      payload.notes
+    ]
+  );
+
+  return {
+    insertId: result.insertId,
+    speciesId,
+    categoryId
+  };
+}
+
+export async function createFishEntryEvents(payloads) {
   const db = getDatabasePool();
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
+    const insertedIds = [];
 
-    const [result] = await connection.query(
-      `INSERT INTO fish_entry_events (
-        water_object_id, event_date, event_type, species_id, category_id, count_total,
-        weight_avg_kg, weight_total_kg, source_kind, source_water_object_id, source_label, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        payload.water_object_id,
-        payload.event_date,
-        payload.event_type,
-        payload.species_id,
-        payload.category_id,
-        payload.count_total,
-        payload.weight_avg_kg,
-        payload.weight_total_kg,
-        payload.source_kind,
-        payload.source_water_object_id,
-        payload.source_label,
-        payload.notes
-      ]
-    );
+    for (const payload of payloads) {
+      const { insertId, speciesId } = await insertFishEntryEvent(connection, payload);
 
-    await upsertStockFromEntry(connection, payload);
+      await upsertStockFromEntry(connection, {
+        ...payload,
+        species_id: speciesId
+      });
+
+      insertedIds.push(insertId);
+    }
 
     await connection.commit();
-    return result.insertId;
+    return insertedIds;
   } catch (error) {
     await connection.rollback();
     throw error;
   } finally {
     connection.release();
   }
+}
+
+export async function createFishEntryEvent(payload) {
+  const [insertId] = await createFishEntryEvents([payload]);
+  return insertId;
 }
 
 async function upsertStockFromEntry(connection, payload) {

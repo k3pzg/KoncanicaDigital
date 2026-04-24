@@ -18,6 +18,18 @@ function toPositiveNumberOrNull(value) {
   return parsed > 0 ? parsed : NaN;
 }
 
+function normalizeSourceLabel(payload) {
+  if (typeof payload.source === 'string' && payload.source.trim()) {
+    return payload.source.trim();
+  }
+
+  if (typeof payload.source_label === 'string' && payload.source_label.trim()) {
+    return payload.source_label.trim();
+  }
+
+  return null;
+}
+
 export function normalizeEntryPayload(payload) {
   const countTotal = Number(payload.count_total ?? payload.count_in);
   const weightAvg = toPositiveNumberOrNull(payload.weight_avg_kg);
@@ -32,8 +44,14 @@ export function normalizeEntryPayload(payload) {
     water_object_id: Number(payload.water_object_id),
     event_date: payload.event_date,
     event_type: payload.event_type || 'nasad',
-    species_id: Number(payload.species_id),
-    category_id: Number(payload.category_id),
+    species_id: payload.species_id === null || payload.species_id === undefined || payload.species_id === ''
+      ? null
+      : Number(payload.species_id),
+    category_id: payload.category_id === null || payload.category_id === undefined || payload.category_id === ''
+      ? null
+      : Number(payload.category_id),
+    new_species_label: payload.new_species_label?.trim() || null,
+    new_category_label: payload.new_category_label?.trim() || null,
     count_total: countTotal,
     weight_avg_kg: Number.isFinite(weightAvg)
       ? weightAvg
@@ -41,9 +59,29 @@ export function normalizeEntryPayload(payload) {
     weight_total_kg: weightTotal,
     source_kind: payload.source_kind || 'ostalo',
     source_water_object_id: toNumberOrNull(payload.source_water_object_id),
-    source_label: payload.source_label?.trim() || 'Fish entry event (app form)',
+    source_label: normalizeSourceLabel(payload),
     notes: payload.notes?.trim() || null
   };
+}
+
+export function normalizeEntryPayloads(payload) {
+  const lines = Array.isArray(payload.entries) ? payload.entries : [];
+
+  if (!lines.length) {
+    return [normalizeEntryPayload(payload)];
+  }
+
+  return lines.map((line) => normalizeEntryPayload({
+    ...line,
+    water_object_id: line.water_object_id ?? payload.water_object_id,
+    event_date: line.event_date ?? payload.event_date,
+    source: line.source ?? payload.source,
+    source_label: line.source_label ?? payload.source_label,
+    source_kind: line.source_kind ?? payload.source_kind,
+    source_water_object_id: line.source_water_object_id ?? payload.source_water_object_id,
+    notes: line.notes ?? payload.notes,
+    event_type: line.event_type ?? payload.event_type
+  }));
 }
 
 export function validateEntryPayload(payload) {
@@ -56,11 +94,11 @@ export function validateEntryPayload(payload) {
   if (!FISH_ENTRY_EVENT_TYPES.includes(payload.event_type)) {
     return `event_type must be one of: ${FISH_ENTRY_EVENT_TYPES.join(', ')}`;
   }
-  if (!Number.isInteger(payload.species_id) || payload.species_id <= 0) {
-    return 'species_id is required';
+  if ((!Number.isInteger(payload.species_id) || payload.species_id <= 0) && !payload.new_species_label) {
+    return 'species_id or new_species_label is required';
   }
-  if (!Number.isInteger(payload.category_id) || payload.category_id <= 0) {
-    return 'category_id is required';
+  if ((!Number.isInteger(payload.category_id) || payload.category_id <= 0) && !payload.new_category_label) {
+    return 'category_id or new_category_label is required';
   }
   if (!Number.isFinite(payload.count_total) || payload.count_total <= 0) {
     return 'count_total must be greater than 0';

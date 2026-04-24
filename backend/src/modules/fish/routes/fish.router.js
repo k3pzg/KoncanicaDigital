@@ -3,6 +3,7 @@ import { requireAuth } from '../../auth/middleware/require-auth.middleware.js';
 import {
   addFishControlEvent,
   addFishEntryEvent,
+  addFishEntryEvents,
   getFishCategories,
   getFishControlEventById,
   getFishControlEvents,
@@ -52,7 +53,13 @@ fishRouter.get('/fish-entry-events/:id', async (request, response) => {
 
 fishRouter.post('/fish-entry-events', async (request, response) => {
   try {
-    const item = await addFishEntryEvent(request.body ?? {});
+    const payload = request.body ?? {};
+    if (Array.isArray(payload.entries)) {
+      const items = await addFishEntryEvents(payload);
+      return response.status(201).json({ items });
+    }
+
+    const item = await addFishEntryEvent(payload);
     return response.status(201).json({ item });
   } catch (error) {
     return response.status(400).json({ message: error.message });
@@ -62,7 +69,13 @@ fishRouter.post('/fish-entry-events', async (request, response) => {
 
 fishRouter.post('/api/fish/entry-events', async (request, response) => {
   try {
-    const item = await addFishEntryEvent(request.body ?? {});
+    const payload = request.body ?? {};
+    if (Array.isArray(payload.entries)) {
+      const items = await addFishEntryEvents(payload);
+      return response.status(201).json({ items });
+    }
+
+    const item = await addFishEntryEvent(payload);
     return response.status(201).json({ item });
   } catch (error) {
     return response.status(400).json({ message: error.message });
