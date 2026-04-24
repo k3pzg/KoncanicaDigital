@@ -1,4 +1,5 @@
 import { getDatabasePool } from '../../../config/database.js';
+import { resolveSpeciesName } from '../constants/species-display.constants.js';
 
 export async function listFishSpecies() {
   const db = getDatabasePool();
@@ -277,7 +278,9 @@ export async function listFishStockAggregate() {
   const [rows] = await db.query(
     `SELECT
        wo.code AS water_object_code,
-       COALESCE(fs.code, fs.label) AS species_code,
+       latest_entry_category.category_name AS category_name,
+       fs.code AS species_code,
+       fs.label AS species_label,
        SUM(fsc.count_total) AS count_total,
        SUM(fsc.weight_total_kg) AS weight_total_kg,
        CASE
@@ -287,13 +290,30 @@ export async function listFishStockAggregate() {
      FROM fish_stock_current fsc
      INNER JOIN water_objects wo ON wo.id = fsc.water_object_id
      INNER JOIN fish_species fs ON fs.id = fsc.species_id
-     GROUP BY wo.code, COALESCE(fs.code, fs.label)
-     ORDER BY wo.code ASC, species_code ASC`
+     LEFT JOIN (
+       SELECT
+         fee.water_object_id,
+         fee.species_id,
+         SUBSTRING_INDEX(
+           GROUP_CONCAT(fc.label ORDER BY fee.event_date DESC, fee.id DESC SEPARATOR '||'),
+           '||',
+           1
+         ) AS category_name
+       FROM fish_entry_events fee
+       INNER JOIN fish_categories fc ON fc.id = fee.category_id
+       GROUP BY fee.water_object_id, fee.species_id
+     ) latest_entry_category
+       ON latest_entry_category.water_object_id = fsc.water_object_id
+      AND latest_entry_category.species_id = fsc.species_id
+     GROUP BY wo.code, latest_entry_category.category_name, fs.code, fs.label
+     ORDER BY wo.code ASC, fs.code ASC`
   );
 
   return rows.map((row) => ({
     water_object_code: row.water_object_code,
+    category_name: row.category_name,
     species_code: row.species_code,
+    species_name: resolveSpeciesName(row.species_code, row.species_label),
     count_total: Number(row.count_total),
     weight_total_kg: Number(row.weight_total_kg),
     weight_avg_kg: Number(row.weight_avg_kg)

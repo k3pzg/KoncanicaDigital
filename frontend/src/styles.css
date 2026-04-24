@@ -78,3 +78,86 @@ button { cursor: pointer; }
   text-align: left;
   font-size: 0.9rem;
 }
+
+.fish-stock-card {
+  width: min(980px, 100%);
+}
+
+.fish-stock-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.fish-stock-filters label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.fish-stock-filters input,
+.fish-stock-filters select {
+  min-width: 180px;
+}
+
+.fish-stock-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.fish-stock-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fish-stock-group h3 {
+  margin: 0.25rem 0;
+  font-size: 1.2rem;
+}
+
+.fish-stock-table-wrap th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+
+.fish-stock-data-row:nth-child(odd) {
+  background: #f8fafc;
+}
+
+.fish-stock-total-row {
+  background: #e2e8f0;
+}
+
+.numeric-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.fish-stock-summary {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 1rem;
+}
+
+.fish-stock-summary-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #ffffff;
+}
+
+.fish-stock-summary-card h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.fish-stock-summary-card p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
