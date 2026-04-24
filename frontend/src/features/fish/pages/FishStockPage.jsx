@@ -36,6 +36,7 @@ export function FishStockPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [waterSort, setWaterSort] = useState('asc');
   const [speciesSort, setSpeciesSort] = useState('asc');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     async function loadFishStock() {
@@ -56,7 +57,18 @@ export function FishStockPage() {
   }, [token]);
 
   const groupedRows = useMemo(() => {
-    const grouped = rows.reduce((groups, row) => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('hr-HR');
+    const filteredRows = rows.filter((row) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const waterCode = String(row.water_object_code ?? '').toLocaleLowerCase('hr-HR');
+      const speciesName = String(row.species_name ?? row.species_code ?? '').toLocaleLowerCase('hr-HR');
+      return waterCode.includes(normalizedQuery) || speciesName.includes(normalizedQuery);
+    });
+
+    const grouped = filteredRows.reduce((groups, row) => {
       const groupKey = row.water_object_code ?? 'NEPOZNATO';
       if (!groups[groupKey]) {
         groups[groupKey] = [];
@@ -75,7 +87,7 @@ export function FishStockPage() {
         return compareText(leftName, rightName, speciesSort);
       })
     }));
-  }, [rows, waterSort, speciesSort]);
+  }, [rows, query, waterSort, speciesSort]);
 
   return (
     <section className="card fish-stock-card">
@@ -98,6 +110,16 @@ export function FishStockPage() {
             <option value="desc">Z-A</option>
           </select>
         </label>
+
+        <label>
+          Pretraga
+          <input
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Objekt ili vrsta"
+          />
+        </label>
       </div>
 
       {error ? <p className="error-text">{error}</p> : null}
@@ -111,9 +133,9 @@ export function FishStockPage() {
               <tr>
                 <th>water_object_code</th>
                 <th>species_name</th>
-                <th>count_total</th>
-                <th>weight_total_kg</th>
-                <th>weight_avg_kg</th>
+                <th className="numeric-cell">count_total</th>
+                <th className="numeric-cell">weight_total_kg</th>
+                <th className="numeric-cell">weight_avg_kg</th>
               </tr>
             </thead>
             <tbody>
@@ -136,11 +158,11 @@ function FishStockGroup({ group }) {
       </tr>
       {group.rows.map((row, index) => (
         <tr key={`${group.waterObjectCode}-${row.species_code}-${index}`}>
-          <td>{row.water_object_code ?? '-'}</td>
+          <td>{index === 0 ? row.water_object_code ?? '-' : ''}</td>
           <td>{row.species_name ?? '-'}</td>
-          <td>{formatInteger(row.count_total)}</td>
-          <td>{formatDecimal(row.weight_total_kg, 2)}</td>
-          <td>{formatDecimal(row.weight_avg_kg, 3)}</td>
+          <td className="numeric-cell">{formatInteger(row.count_total)}</td>
+          <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 2)}</td>
+          <td className="numeric-cell">{formatDecimal(row.weight_avg_kg, 3)}</td>
         </tr>
       ))}
     </>

@@ -96,7 +96,21 @@ button { cursor: pointer; }
   font-size: 0.9rem;
 }
 
+.fish-stock-filters input,
+.fish-stock-filters select {
+  min-width: 160px;
+}
+
 .group-row td {
   background: #eff6ff;
   font-weight: 600;
+}
+
+.numeric-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-wrap tbody tr:nth-child(odd):not(.group-row) {
+  background: #f8fafc;
 }
