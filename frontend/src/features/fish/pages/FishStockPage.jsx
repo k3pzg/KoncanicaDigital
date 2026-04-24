@@ -63,8 +63,15 @@ export function FishStockPage() {
 
   const normalizedSearch = search.trim().toLocaleLowerCase('hr-HR');
 
+  const normalizedRows = useMemo(() => {
+    return rows.map((row) => ({
+      ...row,
+      category_name: row.category_name == null ? 'Bez kategorije' : row.category_name
+    }));
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
+    return normalizedRows.filter((row) => {
       if (!normalizedSearch) {
         return true;
       }
@@ -79,12 +86,12 @@ export function FishStockPage() {
         || categoryName.includes(normalizedSearch)
       );
     });
-  }, [rows, normalizedSearch]);
+  }, [normalizedRows, normalizedSearch]);
 
   const groupedRows = useMemo(() => {
     const waterGroups = filteredRows.reduce((groups, row) => {
       const waterCode = row.water_object_code ?? 'NEPOZNATO';
-      const categoryName = row.category_name ?? 'Bez kategorije';
+      const categoryName = row.category_name;
 
       if (!groups[waterCode]) {
         groups[waterCode] = {};
@@ -139,7 +146,7 @@ export function FishStockPage() {
 
   const categoryTotals = useMemo(() => {
     const totalsByCategory = filteredRows.reduce((totals, row) => {
-      const categoryName = row.category_name ?? 'Bez kategorije';
+      const categoryName = row.category_name;
       if (!totals[categoryName]) {
         totals[categoryName] = { countTotal: 0, weightTotal: 0 };
       }
@@ -279,7 +286,7 @@ function FishStockCategoryGroup({ waterObjectCode, category }) {
         <tr key={`${waterObjectCode}-${category.categoryName}-${row.species_code}-${index}`}>
           <td>{row.water_object_code ?? '-'}</td>
           <td>{row.species_name ?? '-'}</td>
-          <td>{row.category_name ?? '-'}</td>
+          <td>{row.category_name}</td>
           <td>{formatInteger(row.count_total)}</td>
           <td>{formatDecimal(row.weight_total_kg, 2)}</td>
           <td>{formatDecimal(row.weight_avg_kg, 3)}</td>
