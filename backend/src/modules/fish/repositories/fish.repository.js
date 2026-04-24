@@ -295,6 +295,7 @@ export async function listFishStockAggregate() {
 
   return rows.map((row) => ({
     water_object_code: row.water_object_code,
+    category_name: row.category_name,
     species_code: row.species_code,
     species_name: resolveSpeciesName(row.species_code, row.species_label),
     count_total: Number(row.count_total),
