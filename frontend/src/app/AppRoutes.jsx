@@ -4,6 +4,7 @@ import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
 import { AppHomePage } from '../features/app/pages/AppHomePage';
 import { WaterObjectsPage } from '../features/water-objects/pages/WaterObjectsPage';
 import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
+import { FishStockPage } from '../features/fish/pages/FishStockPage';
 
 export function AppRoutes() {
   return (
@@ -31,6 +32,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <FishPhaseOnePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/fish-stock"
+        element={
+          <ProtectedRoute>
+            <FishStockPage />
           </ProtectedRoute>
         }
       />
