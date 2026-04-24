@@ -271,3 +271,31 @@ export async function listFishStockCurrent(waterObjectId) {
 
   return rows;
 }
+
+export async function listFishStockAggregate() {
+  const db = getDatabasePool();
+  const [rows] = await db.query(
+    `SELECT
+       wo.code AS water_object_code,
+       COALESCE(fs.code, fs.label) AS species_code,
+       SUM(fsc.count_total) AS count_total,
+       SUM(fsc.weight_total_kg) AS weight_total_kg,
+       CASE
+         WHEN SUM(fsc.count_total) > 0 THEN SUM(fsc.weight_total_kg) / SUM(fsc.count_total)
+         ELSE 0
+       END AS weight_avg_kg
+     FROM fish_stock_current fsc
+     INNER JOIN water_objects wo ON wo.id = fsc.water_object_id
+     INNER JOIN fish_species fs ON fs.id = fsc.species_id
+     GROUP BY wo.code, COALESCE(fs.code, fs.label)
+     ORDER BY wo.code ASC, species_code ASC`
+  );
+
+  return rows.map((row) => ({
+    water_object_code: row.water_object_code,
+    species_code: row.species_code,
+    count_total: Number(row.count_total),
+    weight_total_kg: Number(row.weight_total_kg),
+    weight_avg_kg: Number(row.weight_avg_kg)
+  }));
+}
