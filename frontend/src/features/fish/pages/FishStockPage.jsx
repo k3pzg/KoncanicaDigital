@@ -61,8 +61,6 @@ export function FishStockPage() {
     loadFishStock();
   }, [token]);
 
-  const normalizedSearch = search.trim().toLocaleLowerCase('hr-HR');
-
   const normalizedRows = useMemo(() => {
     return rows.map((row) => ({
       ...row,
@@ -71,6 +69,8 @@ export function FishStockPage() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLocaleLowerCase('hr-HR');
+
     return normalizedRows.filter((row) => {
       if (!normalizedSearch) {
         return true;
@@ -86,90 +86,49 @@ export function FishStockPage() {
         || categoryName.includes(normalizedSearch)
       );
     });
-  }, [normalizedRows, normalizedSearch]);
+  }, [normalizedRows, search]);
 
-  const groupedRows = useMemo(() => {
-    const waterGroups = filteredRows.reduce((groups, row) => {
+  const waterGroups = useMemo(() => {
+    const grouped = filteredRows.reduce((groups, row) => {
       const waterCode = row.water_object_code ?? 'NEPOZNATO';
-      const categoryName = row.category_name;
 
       if (!groups[waterCode]) {
-        groups[waterCode] = {};
+        groups[waterCode] = [];
       }
 
-      if (!groups[waterCode][categoryName]) {
-        groups[waterCode][categoryName] = [];
-      }
-
-      groups[waterCode][categoryName].push(row);
+      groups[waterCode].push(row);
       return groups;
     }, {});
 
-    return Object.keys(waterGroups)
+    return Object.keys(grouped)
       .sort((left, right) => compareText(left, right, waterSort))
       .map((waterObjectCode) => {
-        const categoryGroups = Object.keys(waterGroups[waterObjectCode])
-          .sort((left, right) => left.localeCompare(right, 'hr-HR'))
-          .map((categoryName) => {
-            const categoryRows = [...waterGroups[waterObjectCode][categoryName]].sort((left, right) => {
-              const leftName = left.species_name ?? left.species_code ?? '';
-              const rightName = right.species_name ?? right.species_code ?? '';
-              return compareText(leftName, rightName, speciesSort);
-            });
+        const rowsByWaterObject = [...grouped[waterObjectCode]].sort((left, right) => {
+          const leftName = left.species_name ?? left.species_code ?? '';
+          const rightName = right.species_name ?? right.species_code ?? '';
+          return compareText(leftName, rightName, speciesSort);
+        });
 
-            const totals = categoryRows.reduce(
-              (acc, row) => {
-                acc.countTotal += toNumber(row.count_total);
-                acc.weightTotal += toNumber(row.weight_total_kg);
-                return acc;
-              },
-              { countTotal: 0, weightTotal: 0 }
-            );
-
-            return {
-              categoryName,
-              rows: categoryRows,
-              totals: {
-                count_total: totals.countTotal,
-                weight_total_kg: totals.weightTotal,
-                weight_avg_kg: totals.countTotal > 0 ? totals.weightTotal / totals.countTotal : 0
-              }
-            };
-          });
+        const totals = rowsByWaterObject.reduce(
+          (acc, row) => {
+            acc.countTotal += toNumber(row.count_total);
+            acc.weightTotal += toNumber(row.weight_total_kg);
+            return acc;
+          },
+          { countTotal: 0, weightTotal: 0 }
+        );
 
         return {
           waterObjectCode,
-          categories: categoryGroups
+          rows: rowsByWaterObject,
+          total: {
+            count_total: totals.countTotal,
+            weight_total_kg: totals.weightTotal,
+            weight_avg_kg: totals.countTotal > 0 ? totals.weightTotal / totals.countTotal : 0
+          }
         };
       });
   }, [filteredRows, waterSort, speciesSort]);
-
-  const categoryTotals = useMemo(() => {
-    const totalsByCategory = filteredRows.reduce((totals, row) => {
-      const categoryName = row.category_name;
-      if (!totals[categoryName]) {
-        totals[categoryName] = { countTotal: 0, weightTotal: 0 };
-      }
-
-      totals[categoryName].countTotal += toNumber(row.count_total);
-      totals[categoryName].weightTotal += toNumber(row.weight_total_kg);
-      return totals;
-    }, {});
-
-    return Object.keys(totalsByCategory)
-      .sort((left, right) => left.localeCompare(right, 'hr-HR'))
-      .map((categoryName) => {
-        const totals = totalsByCategory[categoryName];
-        const avg = totals.countTotal > 0 ? totals.weightTotal / totals.countTotal : 0;
-
-        return {
-          category_name: categoryName,
-          count_total: totals.countTotal,
-          weight_total_kg: totals.weightTotal,
-          weight_avg_kg: avg
-        };
-      });
-  }, [filteredRows]);
 
   return (
     <section className="card fish-stock-card">
@@ -206,92 +165,48 @@ export function FishStockPage() {
 
       {error ? <p className="error-text">{error}</p> : null}
       {isLoading ? <p>Učitavanje podataka...</p> : null}
+      {!isLoading && !error && waterGroups.length === 0 ? <p>Nema podataka za prikaz.</p> : null}
 
-      {!isLoading && categoryTotals.length > 0 ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>category_name</th>
-                <th>count_total</th>
-                <th>weight_total_kg</th>
-                <th>weight_avg_kg</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categoryTotals.map((item) => (
-                <tr key={`global-${item.category_name}`}>
-                  <td>{item.category_name}</td>
-                  <td>{formatInteger(item.count_total)}</td>
-                  <td>{formatDecimal(item.weight_total_kg, 2)}</td>
-                  <td>{formatDecimal(item.weight_avg_kg, 3)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-
-      {!isLoading && !error && groupedRows.length === 0 ? <p>Nema podataka za prikaz.</p> : null}
-
-      {!isLoading && groupedRows.length > 0 ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>water_object_code</th>
-                <th>species_name</th>
-                <th>category_name</th>
-                <th>count_total</th>
-                <th>weight_total_kg</th>
-                <th>weight_avg_kg</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupedRows.map((group) => (
-                <FishStockWaterGroup key={group.waterObjectCode} group={group} />
-              ))}
-            </tbody>
-          </table>
+      {!isLoading && waterGroups.length > 0 ? (
+        <div className="fish-stock-groups">
+          {waterGroups.map((group) => (
+            <section key={group.waterObjectCode} className="fish-stock-group">
+              <h3>{group.waterObjectCode}</h3>
+              <div className="table-wrap fish-stock-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>species_name</th>
+                      <th>category_name</th>
+                      <th className="numeric-cell">count_total</th>
+                      <th className="numeric-cell">weight_total_kg</th>
+                      <th className="numeric-cell">weight_avg_kg</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.rows.map((row, index) => (
+                      <tr key={`${group.waterObjectCode}-${row.species_code}-${index}`} className="fish-stock-data-row">
+                        <td>{row.species_name ?? '-'}</td>
+                        <td>{row.category_name}</td>
+                        <td className="numeric-cell">{formatInteger(row.count_total)}</td>
+                        <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 0)}</td>
+                        <td className="numeric-cell">{formatDecimal(row.weight_avg_kg, 2)}</td>
+                      </tr>
+                    ))}
+                    <tr className="fish-stock-total-row">
+                      <td><strong>TOTAL</strong></td>
+                      <td></td>
+                      <td className="numeric-cell"><strong>{formatInteger(group.total.count_total)}</strong></td>
+                      <td className="numeric-cell"><strong>{formatDecimal(group.total.weight_total_kg, 0)}</strong></td>
+                      <td className="numeric-cell"><strong>{formatDecimal(group.total.weight_avg_kg, 2)}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ))}
         </div>
       ) : null}
     </section>
-  );
-}
-
-function FishStockWaterGroup({ group }) {
-  return (
-    <>
-      <tr className="group-row">
-        <td colSpan={6}>water_object_code: {group.waterObjectCode}</td>
-      </tr>
-      {group.categories.map((category) => (
-        <FishStockCategoryGroup
-          key={`${group.waterObjectCode}-${category.categoryName}`}
-          waterObjectCode={group.waterObjectCode}
-          category={category}
-        />
-      ))}
-    </>
-  );
-}
-
-function FishStockCategoryGroup({ waterObjectCode, category }) {
-  return (
-    <>
-      <tr>
-        <td colSpan={6}>TOTAL ({category.categoryName}) • count_total: {formatInteger(category.totals.count_total)} • weight_total_kg: {formatDecimal(category.totals.weight_total_kg, 2)} • weight_avg_kg: {formatDecimal(category.totals.weight_avg_kg, 3)}</td>
-      </tr>
-      {category.rows.map((row, index) => (
-        <tr key={`${waterObjectCode}-${category.categoryName}-${row.species_code}-${index}`}>
-          <td>{row.water_object_code ?? '-'}</td>
-          <td>{row.species_name ?? '-'}</td>
-          <td>{row.category_name}</td>
-          <td>{formatInteger(row.count_total)}</td>
-          <td>{formatDecimal(row.weight_total_kg, 2)}</td>
-          <td>{formatDecimal(row.weight_avg_kg, 3)}</td>
-        </tr>
-      ))}
-    </>
   );
 }
