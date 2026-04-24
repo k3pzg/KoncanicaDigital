@@ -78,3 +78,59 @@ button { cursor: pointer; }
   text-align: left;
   font-size: 0.9rem;
 }
+
+.fish-stock-card {
+  width: min(980px, 100%);
+}
+
+.fish-stock-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.fish-stock-filters label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.fish-stock-filters input,
+.fish-stock-filters select {
+  min-width: 180px;
+}
+
+.fish-stock-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.fish-stock-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fish-stock-group h3 {
+  margin: 0.25rem 0;
+}
+
+.fish-stock-table-wrap th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+
+.fish-stock-data-row:nth-child(odd) {
+  background: #f8fafc;
+}
+
+.fish-stock-total-row {
+  background: #e2e8f0;
+}
+
+.numeric-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
