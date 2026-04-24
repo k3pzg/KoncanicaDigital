@@ -78,3 +78,12 @@ button { cursor: pointer; }
   text-align: left;
   font-size: 0.9rem;
 }
+
+.fish-stock-card {
+  width: min(1100px, 100%);
+}
+
+.group-row td {
+  background: #eff6ff;
+  font-weight: 600;
+}
