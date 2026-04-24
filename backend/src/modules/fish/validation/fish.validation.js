@@ -9,19 +9,39 @@ function toNumberOrNull(value) {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+function toPositiveNumberOrNull(value) {
+  const parsed = toNumberOrNull(value);
+  if (parsed === null) {
+    return null;
+  }
+
+  return parsed > 0 ? parsed : NaN;
+}
+
 export function normalizeEntryPayload(payload) {
+  const countTotal = Number(payload.count_total ?? payload.count_in);
+  const weightAvg = toPositiveNumberOrNull(payload.weight_avg_kg);
+  const weightTotalRaw = toPositiveNumberOrNull(payload.weight_total_kg);
+  const fallbackWeightTotal = Number.isFinite(countTotal) && countTotal > 0 && Number.isFinite(weightAvg)
+    ? countTotal * weightAvg
+    : NaN;
+
+  const weightTotal = Number.isFinite(weightTotalRaw) ? weightTotalRaw : fallbackWeightTotal;
+
   return {
     water_object_id: Number(payload.water_object_id),
     event_date: payload.event_date,
-    event_type: payload.event_type,
+    event_type: payload.event_type || 'nasad',
     species_id: Number(payload.species_id),
     category_id: Number(payload.category_id),
-    count_total: Number(payload.count_total),
-    weight_avg_kg: toNumberOrNull(payload.weight_avg_kg),
-    weight_total_kg: Number(payload.weight_total_kg),
-    source_kind: payload.source_kind,
+    count_total: countTotal,
+    weight_avg_kg: Number.isFinite(weightAvg)
+      ? weightAvg
+      : (Number.isFinite(weightTotal) && Number.isFinite(countTotal) && countTotal > 0 ? weightTotal / countTotal : null),
+    weight_total_kg: weightTotal,
+    source_kind: payload.source_kind || 'ostalo',
     source_water_object_id: toNumberOrNull(payload.source_water_object_id),
-    source_label: payload.source_label?.trim() || null,
+    source_label: payload.source_label?.trim() || 'Fish entry event (app form)',
     notes: payload.notes?.trim() || null
   };
 }

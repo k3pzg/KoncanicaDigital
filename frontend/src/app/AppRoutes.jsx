@@ -5,6 +5,7 @@ import { AppHomePage } from '../features/app/pages/AppHomePage';
 import { WaterObjectsPage } from '../features/water-objects/pages/WaterObjectsPage';
 import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
 import { FishStockPage } from '../features/fish/pages/FishStockPage';
+import { FishEntryFormPage } from '../features/fish/pages/FishEntryFormPage';
 
 export function AppRoutes() {
   return (
@@ -40,6 +41,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <FishStockPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/fish-entry/new"
+        element={
+          <ProtectedRoute>
+            <FishEntryFormPage />
           </ProtectedRoute>
         }
       />

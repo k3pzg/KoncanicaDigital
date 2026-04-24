@@ -30,6 +30,14 @@ export function createFishEntryEventRequest(token, payload) {
   });
 }
 
+export function createFishEntryEventApiRequest(token, payload) {
+  return apiRequest('/api/fish/entry-events', {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload)
+  });
+}
+
 export function listFishControlEventsRequest(token) {
   return apiRequest('/fish-control-events', { headers: authHeaders(token) });
 }
