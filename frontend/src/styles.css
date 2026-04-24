@@ -113,6 +113,7 @@ button { cursor: pointer; }
 
 .fish-stock-group h3 {
   margin: 0.25rem 0;
+  font-size: 1.2rem;
 }
 
 .fish-stock-table-wrap th {
@@ -133,4 +134,30 @@ button { cursor: pointer; }
 .numeric-cell {
   text-align: right !important;
   font-variant-numeric: tabular-nums;
+}
+
+.fish-stock-summary {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 1rem;
+}
+
+.fish-stock-summary-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #ffffff;
+}
+
+.fish-stock-summary-card h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.fish-stock-summary-card p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
