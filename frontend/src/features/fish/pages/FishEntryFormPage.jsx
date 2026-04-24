@@ -7,16 +7,27 @@ import {
   listFishCategoriesRequest,
   listFishSpeciesRequest
 } from '../api/fishApi';
+import { FishEntryRow, OTHER_OPTION_VALUE } from '../components/FishEntryRow';
 
-const initialForm = {
+const initialHeaderForm = {
   water_object_id: '',
-  species_id: '',
-  category_id: '',
   event_date: '',
-  count_in: '',
-  weight_avg_kg: '',
-  weight_total_kg: ''
+  source: ''
 };
+
+function createEmptyRow() {
+  return {
+    id: crypto.randomUUID(),
+    species_id: '',
+    category_id: '',
+    new_species_label: '',
+    new_category_label: '',
+    count_in: '',
+    weight_avg_kg: '',
+    weight_total_kg: '',
+    lastWeightInput: 'avg'
+  };
+}
 
 function toNumber(value) {
   if (value === '' || value === null || value === undefined) {
@@ -32,10 +43,34 @@ function roundTo(value, precision = 4) {
   return Math.round(value * factor) / factor;
 }
 
+function rowHasMissingRequiredFields(row) {
+  if (!row.species_id || !row.category_id) {
+    return true;
+  }
+
+  if (row.species_id === OTHER_OPTION_VALUE && !row.new_species_label.trim()) {
+    return true;
+  }
+
+  if (row.category_id === OTHER_OPTION_VALUE && !row.new_category_label.trim()) {
+    return true;
+  }
+
+  const countIn = toNumber(row.count_in);
+  if (!Number.isFinite(countIn) || countIn <= 0) {
+    return true;
+  }
+
+  const weightAvg = toNumber(row.weight_avg_kg);
+  const weightTotal = toNumber(row.weight_total_kg);
+  return (!Number.isFinite(weightAvg) || weightAvg <= 0) && (!Number.isFinite(weightTotal) || weightTotal <= 0);
+}
+
 export function FishEntryFormPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState(initialForm);
+  const [headerForm, setHeaderForm] = useState(initialHeaderForm);
+  const [rows, setRows] = useState([createEmptyRow()]);
   const [waterObjects, setWaterObjects] = useState([]);
   const [species, setSpecies] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -43,7 +78,6 @@ export function FishEntryFormPage() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastWeightInput, setLastWeightInput] = useState('avg');
 
   useEffect(() => {
     async function loadData() {
@@ -72,26 +106,47 @@ export function FishEntryFormPage() {
 
   const isFormDisabled = isLoading || isSubmitting;
 
-  const canCalculateTotal = useMemo(() => {
-    const count = toNumber(form.count_in);
-    const weightAvg = toNumber(form.weight_avg_kg);
-    return Number.isFinite(count) && count > 0 && Number.isFinite(weightAvg) && weightAvg > 0;
-  }, [form.count_in, form.weight_avg_kg]);
+  const isSubmitDisabled = useMemo(() => {
+    if (isFormDisabled) {
+      return true;
+    }
 
-  const canCalculateAverage = useMemo(() => {
-    const count = toNumber(form.count_in);
-    const weightTotal = toNumber(form.weight_total_kg);
-    return Number.isFinite(count) && count > 0 && Number.isFinite(weightTotal) && weightTotal > 0;
-  }, [form.count_in, form.weight_total_kg]);
+    if (!headerForm.water_object_id || !headerForm.event_date) {
+      return true;
+    }
 
-  function handleFieldChange(event) {
+    if (!rows.length) {
+      return true;
+    }
+
+    return rows.some((row) => rowHasMissingRequiredFields(row));
+  }, [headerForm.event_date, headerForm.water_object_id, isFormDisabled, rows]);
+
+  function handleHeaderChange(event) {
+    const { name, value } = event.target;
+    setHeaderForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function handleRowChange(rowId, event) {
     const { name, value } = event.target;
 
-    setForm((prev) => {
-      const next = { ...prev, [name]: value };
+    setRows((prevRows) => prevRows.map((row) => {
+      if (row.id !== rowId) {
+        return row;
+      }
+
+      const next = { ...row, [name]: value };
+
+      if (name === 'species_id' && value !== OTHER_OPTION_VALUE) {
+        next.new_species_label = '';
+      }
+
+      if (name === 'category_id' && value !== OTHER_OPTION_VALUE) {
+        next.new_category_label = '';
+      }
 
       if (name === 'weight_avg_kg') {
-        setLastWeightInput('avg');
+        next.lastWeightInput = 'avg';
         const count = toNumber(next.count_in);
         const weightAvg = toNumber(next.weight_avg_kg);
 
@@ -101,7 +156,7 @@ export function FishEntryFormPage() {
       }
 
       if (name === 'weight_total_kg') {
-        setLastWeightInput('total');
+        next.lastWeightInput = 'total';
         const count = toNumber(next.count_in);
         const weightTotal = toNumber(next.weight_total_kg);
 
@@ -114,14 +169,14 @@ export function FishEntryFormPage() {
         const count = toNumber(next.count_in);
 
         if (Number.isFinite(count) && count > 0) {
-          if (lastWeightInput === 'avg') {
+          if (next.lastWeightInput === 'avg') {
             const weightAvg = toNumber(next.weight_avg_kg);
             if (Number.isFinite(weightAvg) && weightAvg > 0) {
               next.weight_total_kg = String(roundTo(count * weightAvg));
             }
           }
 
-          if (lastWeightInput === 'total') {
+          if (next.lastWeightInput === 'total') {
             const weightTotal = toNumber(next.weight_total_kg);
             if (Number.isFinite(weightTotal) && weightTotal > 0) {
               next.weight_avg_kg = String(roundTo(weightTotal / count));
@@ -131,7 +186,15 @@ export function FishEntryFormPage() {
       }
 
       return next;
-    });
+    }));
+  }
+
+  function handleAddRow() {
+    setRows((prev) => [...prev, createEmptyRow()]);
+  }
+
+  function handleDeleteRow(rowId) {
+    setRows((prev) => prev.filter((row) => row.id !== rowId));
   }
 
   async function handleSubmit(event) {
@@ -139,56 +202,83 @@ export function FishEntryFormPage() {
     setError('');
     setSuccess('');
 
-    if (!form.water_object_id) {
+    if (!headerForm.water_object_id) {
       setError('Objekt je obavezan.');
       return;
     }
 
-    if (!form.species_id) {
-      setError('Vrsta je obavezna.');
-      return;
-    }
-
-    if (!form.category_id) {
-      setError('Kategorija je obavezna.');
-      return;
-    }
-
-    if (!form.event_date) {
+    if (!headerForm.event_date) {
       setError('Datum je obavezan.');
       return;
     }
 
-    const countIn = toNumber(form.count_in);
-    if (!Number.isFinite(countIn) || countIn <= 0) {
-      setError('Količina mora biti broj veći od 0.');
+    if (!rows.length) {
+      setError('Dodajte barem jedan red unosa.');
       return;
     }
 
-    const weightAvg = toNumber(form.weight_avg_kg);
-    const weightTotal = toNumber(form.weight_total_kg);
+    const payloadEntries = [];
 
-    if ((!Number.isFinite(weightAvg) || weightAvg <= 0) && (!Number.isFinite(weightTotal) || weightTotal <= 0)) {
-      setError('Unesite prosječnu ili ukupnu težinu (veću od 0).');
-      return;
+    for (const [index, row] of rows.entries()) {
+      if (!row.species_id) {
+        setError(`Red ${index + 1}: Vrsta je obavezna.`);
+        return;
+      }
+
+      if (!row.category_id) {
+        setError(`Red ${index + 1}: Kategorija je obavezna.`);
+        return;
+      }
+
+      const countIn = toNumber(row.count_in);
+      if (!Number.isFinite(countIn) || countIn <= 0) {
+        setError(`Red ${index + 1}: Količina mora biti broj veći od 0.`);
+        return;
+      }
+
+      const weightAvg = toNumber(row.weight_avg_kg);
+      const weightTotal = toNumber(row.weight_total_kg);
+
+      if ((!Number.isFinite(weightAvg) || weightAvg <= 0) && (!Number.isFinite(weightTotal) || weightTotal <= 0)) {
+        setError(`Red ${index + 1}: Unesite prosječnu ili ukupnu težinu (veću od 0).`);
+        return;
+      }
+
+      if (row.species_id === OTHER_OPTION_VALUE && !row.new_species_label.trim()) {
+        setError(`Red ${index + 1}: Unesite novu vrstu.`);
+        return;
+      }
+
+      if (row.category_id === OTHER_OPTION_VALUE && !row.new_category_label.trim()) {
+        setError(`Red ${index + 1}: Unesite novu kategoriju.`);
+        return;
+      }
+
+      payloadEntries.push({
+        species_id: row.species_id === OTHER_OPTION_VALUE ? null : Number(row.species_id),
+        category_id: row.category_id === OTHER_OPTION_VALUE ? null : Number(row.category_id),
+        new_species_label: row.species_id === OTHER_OPTION_VALUE ? row.new_species_label.trim() : null,
+        new_category_label: row.category_id === OTHER_OPTION_VALUE ? row.new_category_label.trim() : null,
+        count_in: countIn,
+        weight_avg_kg: Number.isFinite(weightAvg) && weightAvg > 0 ? weightAvg : null,
+        weight_total_kg: Number.isFinite(weightTotal) && weightTotal > 0 ? weightTotal : null
+      });
     }
 
     const payload = {
-      water_object_id: Number(form.water_object_id),
-      species_id: Number(form.species_id),
-      category_id: Number(form.category_id),
-      event_date: form.event_date,
-      count_in: countIn,
-      weight_avg_kg: Number.isFinite(weightAvg) && weightAvg > 0 ? weightAvg : null,
-      weight_total_kg: Number.isFinite(weightTotal) && weightTotal > 0 ? weightTotal : null
+      water_object_id: Number(headerForm.water_object_id),
+      event_date: headerForm.event_date,
+      source: headerForm.source.trim() || null,
+      entries: payloadEntries
     };
 
     setIsSubmitting(true);
 
     try {
       await createFishEntryEventApiRequest(token, payload);
-      setSuccess('Unos je uspješno spremljen. Preusmjeravanje...');
-      setForm(initialForm);
+      setSuccess('Unosi su uspješno spremljeni. Preusmjeravanje...');
+      setHeaderForm(initialHeaderForm);
+      setRows([createEmptyRow()]);
 
       setTimeout(() => {
         navigate('/app/fish-stock');
@@ -203,7 +293,7 @@ export function FishEntryFormPage() {
   return (
     <section className="card fish-stock-card">
       <h2>Novi unos poribljavanja</h2>
-      <p>Dodavanje fish_entry_event zapisa.</p>
+      <p>Dodavanje fish_entry_event zapisa (bulk unos).</p>
 
       {error ? <p className="error-text">{error}</p> : null}
       {success ? <p>{success}</p> : null}
@@ -211,7 +301,7 @@ export function FishEntryFormPage() {
       <form className="login-form" onSubmit={handleSubmit}>
         <label>
           Objekt
-          <select name="water_object_id" value={form.water_object_id} onChange={handleFieldChange} disabled={isFormDisabled}>
+          <select name="water_object_id" value={headerForm.water_object_id} onChange={handleHeaderChange} disabled={isFormDisabled}>
             <option value="">Odaberite objekt</option>
             {waterObjects.map((waterObject) => (
               <option key={waterObject.id} value={waterObject.id}>
@@ -222,67 +312,35 @@ export function FishEntryFormPage() {
         </label>
 
         <label>
-          Vrsta
-          <select name="species_id" value={form.species_id} onChange={handleFieldChange} disabled={isFormDisabled}>
-            <option value="">Odaberite vrstu</option>
-            {species.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Kategorija
-          <select name="category_id" value={form.category_id} onChange={handleFieldChange} disabled={isFormDisabled}>
-            <option value="">Odaberite kategoriju</option>
-            {categories.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
           Datum
-          <input type="date" name="event_date" value={form.event_date} onChange={handleFieldChange} disabled={isFormDisabled} />
+          <input type="date" name="event_date" value={headerForm.event_date} onChange={handleHeaderChange} disabled={isFormDisabled} />
         </label>
 
         <label>
-          Količina
-          <input type="number" min="0.01" step="0.01" name="count_in" value={form.count_in} onChange={handleFieldChange} disabled={isFormDisabled} />
+          Izvor ribe
+          <input type="text" name="source" value={headerForm.source} onChange={handleHeaderChange} disabled={isFormDisabled} placeholder="Npr. Lokalni dobavljač" />
         </label>
 
-        <label>
-          Prosječna težina
-          <input
-            type="number"
-            min="0.0001"
-            step="0.0001"
-            name="weight_avg_kg"
-            value={form.weight_avg_kg}
-            onChange={handleFieldChange}
+        {rows.map((row, index) => (
+          <FishEntryRow
+            key={row.id}
+            row={row}
+            index={index}
+            species={species}
+            categories={categories}
             disabled={isFormDisabled}
+            onChange={handleRowChange}
+            onDelete={handleDeleteRow}
+            showDelete={rows.length > 1}
           />
-        </label>
+        ))}
 
-        <label>
-          Ukupna težina
-          <input
-            type="number"
-            min="0.0001"
-            step="0.0001"
-            name="weight_total_kg"
-            value={form.weight_total_kg}
-            onChange={handleFieldChange}
-            disabled={isFormDisabled}
-          />
-        </label>
+        <button type="button" onClick={handleAddRow} disabled={isFormDisabled}>
+          + Dodaj red
+        </button>
 
-        <button type="submit" disabled={isFormDisabled || (!canCalculateAverage && !canCalculateTotal)}>
-          {isSubmitting ? 'Spremanje...' : 'Spremi unos'}
+        <button type="submit" disabled={isSubmitDisabled}>
+          {isSubmitting ? 'Spremanje...' : 'Spremi unose'}
         </button>
       </form>
     </section>
