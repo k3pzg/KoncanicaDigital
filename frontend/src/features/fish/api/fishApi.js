@@ -1,6 +1,10 @@
 import { apiRequest } from '../../../shared/api/httpClient';
 
 function authHeaders(token) {
+  if (!token) {
+    return {};
+  }
+
   return {
     Authorization: `Bearer ${token}`
   };
@@ -41,4 +45,8 @@ export function createFishControlEventRequest(token, payload) {
 export function listFishStockCurrentRequest(token, waterObjectId) {
   const suffix = waterObjectId ? `?waterObjectId=${waterObjectId}` : '';
   return apiRequest(`/fish-stock-current${suffix}`, { headers: authHeaders(token) });
+}
+
+export function listFishStockAggregateRequest(token) {
+  return apiRequest('/api/fish/stock', { headers: authHeaders(token) });
 }
