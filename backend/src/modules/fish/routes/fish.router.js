@@ -59,6 +59,16 @@ fishRouter.post('/fish-entry-events', async (request, response) => {
   }
 });
 
+
+fishRouter.post('/api/fish/entry-events', async (request, response) => {
+  try {
+    const item = await addFishEntryEvent(request.body ?? {});
+    return response.status(201).json({ item });
+  } catch (error) {
+    return response.status(400).json({ message: error.message });
+  }
+});
+
 fishRouter.get('/fish-control-events', async (_, response) => {
   const items = await getFishControlEvents();
   return response.status(200).json({ items });

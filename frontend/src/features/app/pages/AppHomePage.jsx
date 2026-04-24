@@ -17,6 +17,9 @@ export function AppHomePage() {
       <p>
         <Link to="/app/fish-stock">Otvori stanje ribljeg fonda</Link>
       </p>
+      <p>
+        <Link to="/app/fish-entry/new">Novi unos poribljavanja</Link>
+      </p>
       <button type="button" onClick={logout}>
         Odjava
       </button>
