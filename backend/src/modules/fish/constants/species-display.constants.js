@@ -37,6 +37,16 @@ function normalizeLegacyText(value) {
 }
 
 
+
+function stripCustomPrefixWords(value) {
+  return value
+    .replace(/^custom_species_/, '')
+    .replace(/^custom_/, '')
+    .replace(/^species_/, '')
+    .replace(/^custom\s+/i, '')
+    .replace(/^species\s+/i, '');
+}
+
 function resolveCustomSpeciesCode(code) {
   const legacyRandomPattern = /^custom_species_\d+_[a-z0-9]+$/;
   if (legacyRandomPattern.test(code)) {
@@ -47,7 +57,7 @@ function resolveCustomSpeciesCode(code) {
     return null;
   }
 
-  const customValue = code.replace(/^custom_species_/, '');
+  const customValue = stripCustomPrefixWords(code);
   if (!customValue) {
     return 'Unesena vrsta';
   }
