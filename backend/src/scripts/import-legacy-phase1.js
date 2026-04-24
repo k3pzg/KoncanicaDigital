@@ -591,10 +591,7 @@ async function importFishEntryEvents(connection, summary) {
     }
 
     const speciesId = context.speciesIdByCode.get(speciesCode);
-    const categoryId =
-      context.categoryIdByCode.get(categoryCode) ??
-      context.fallbackCategoryId;
-    if (!speciesId || !categoryId) {
+    if (!speciesId) {
       summary.fish.skipped += 1;
       incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
       if (summary.fish.skippedRows.length < 20) {
@@ -605,8 +602,23 @@ async function importFishEntryEvents(connection, summary) {
           reason: 'target_lookup_missing'
         });
       }
-      if (!speciesId) {
-        summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
+      summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
+      continue;
+    }
+
+    const categoryId =
+      context.categoryIdByCode.get(categoryCode) ??
+      context.fallbackCategoryId;
+    if (!categoryId) {
+      summary.fish.skipped += 1;
+      incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({
+          id: row.id,
+          species: row.species,
+          category: row.category,
+          reason: 'target_lookup_missing'
+        });
       }
       if (!categoryId) {
         summary.fish.unmappedCategories.add(`${row.category} -> ${categoryCode} (missing target)`);
