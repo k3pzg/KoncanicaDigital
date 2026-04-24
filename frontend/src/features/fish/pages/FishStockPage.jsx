@@ -36,7 +36,7 @@ export function FishStockPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [waterSort, setWaterSort] = useState('asc');
   const [speciesSort, setSpeciesSort] = useState('asc');
-  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     async function loadFishStock() {
@@ -57,15 +57,20 @@ export function FishStockPage() {
   }, [token]);
 
   const groupedRows = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('hr-HR');
+    const normalizedSearch = search.trim().toLocaleLowerCase('hr-HR');
     const filteredRows = rows.filter((row) => {
-      if (!normalizedQuery) {
+      if (!normalizedSearch) {
         return true;
       }
 
       const waterCode = String(row.water_object_code ?? '').toLocaleLowerCase('hr-HR');
+      const categoryName = String(row.category_name ?? '').toLocaleLowerCase('hr-HR');
       const speciesName = String(row.species_name ?? row.species_code ?? '').toLocaleLowerCase('hr-HR');
-      return waterCode.includes(normalizedQuery) || speciesName.includes(normalizedQuery);
+      return (
+        waterCode.includes(normalizedSearch)
+        || categoryName.includes(normalizedSearch)
+        || speciesName.includes(normalizedSearch)
+      );
     });
 
     const grouped = filteredRows.reduce((groups, row) => {
@@ -87,7 +92,7 @@ export function FishStockPage() {
         return compareText(leftName, rightName, speciesSort);
       })
     }));
-  }, [rows, query, waterSort, speciesSort]);
+  }, [rows, search, waterSort, speciesSort]);
 
   return (
     <section className="card fish-stock-card">
@@ -115,9 +120,9 @@ export function FishStockPage() {
           Pretraga
           <input
             type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Objekt ili vrsta"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Objekt, kategorija ili vrsta"
           />
         </label>
       </div>
@@ -132,10 +137,11 @@ export function FishStockPage() {
             <thead>
               <tr>
                 <th>water_object_code</th>
+                <th>category_name</th>
                 <th>species_name</th>
-                <th className="numeric-cell">count_total</th>
-                <th className="numeric-cell">weight_total_kg</th>
-                <th className="numeric-cell">weight_avg_kg</th>
+                <th>count_total</th>
+                <th>weight_total_kg</th>
+                <th>weight_avg_kg</th>
               </tr>
             </thead>
             <tbody>
@@ -154,15 +160,16 @@ function FishStockGroup({ group }) {
   return (
     <>
       <tr className="group-row">
-        <td colSpan={5}>water_object_code: {group.waterObjectCode}</td>
+        <td colSpan={6}>water_object_code: {group.waterObjectCode}</td>
       </tr>
       {group.rows.map((row, index) => (
         <tr key={`${group.waterObjectCode}-${row.species_code}-${index}`}>
-          <td>{index === 0 ? row.water_object_code ?? '-' : ''}</td>
+          <td>{row.water_object_code ?? '-'}</td>
+          <td>{row.category_name ?? '-'}</td>
           <td>{row.species_name ?? '-'}</td>
-          <td className="numeric-cell">{formatInteger(row.count_total)}</td>
-          <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 2)}</td>
-          <td className="numeric-cell">{formatDecimal(row.weight_avg_kg, 3)}</td>
+          <td>{formatInteger(row.count_total)}</td>
+          <td>{formatDecimal(row.weight_total_kg, 2)}</td>
+          <td>{formatDecimal(row.weight_avg_kg, 3)}</td>
         </tr>
       ))}
     </>
