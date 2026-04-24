@@ -36,6 +36,28 @@ function normalizeLegacyText(value) {
   );
 }
 
+
+function resolveCustomSpeciesCode(code) {
+  const legacyRandomPattern = /^custom_species_\d+_[a-z0-9]+$/;
+  if (legacyRandomPattern.test(code)) {
+    return 'Unesena vrsta';
+  }
+
+  if (!code.startsWith('custom_species_')) {
+    return null;
+  }
+
+  const customValue = code.replace(/^custom_species_/, '');
+  if (!customValue) {
+    return 'Unesena vrsta';
+  }
+
+  return customValue
+    .split('_')
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
 function titleCaseFromCode(code) {
   return code
     .split('_')
@@ -53,6 +75,11 @@ export function resolveSpeciesName(speciesCode, speciesLabel) {
   const normalizedLabel = normalizeLegacyText(speciesLabel);
   if (normalizedLabel) {
     return normalizedLabel;
+  }
+
+  const customSpeciesName = resolveCustomSpeciesCode(normalizedCode);
+  if (customSpeciesName) {
+    return customSpeciesName;
   }
 
   if (normalizedCode) {
