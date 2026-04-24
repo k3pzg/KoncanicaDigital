@@ -74,8 +74,31 @@ async function findExistingCategoryByLabel(connection, label) {
   return rows[0]?.id ?? null;
 }
 
-function buildGeneratedCode(prefix) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+function slugifyForCode(value) {
+  const normalized = String(value ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return normalized.slice(0, 48) || 'custom';
+}
+
+async function buildUniqueGeneratedCode(connection, tableName, prefix, label) {
+  const base = `${prefix}_${slugifyForCode(label)}`;
+  let candidate = base;
+  let suffix = 2;
+
+  while (true) {
+    const [rows] = await connection.query(`SELECT id FROM ${tableName} WHERE code = ? LIMIT 1`, [candidate]);
+    if (!rows[0]) {
+      return candidate;
+    }
+
+    candidate = `${base}_${suffix}`;
+    suffix += 1;
+  }
 }
 
 async function resolveSpeciesId(connection, payload) {
@@ -92,7 +115,7 @@ async function resolveSpeciesId(connection, payload) {
     return existingId;
   }
 
-  const code = buildGeneratedCode('custom_species');
+  const code = await buildUniqueGeneratedCode(connection, 'fish_species', 'custom_species', payload.new_species_label);
   const [result] = await connection.query(
     'INSERT INTO fish_species (code, label, is_active) VALUES (?, ?, 1)',
     [code, payload.new_species_label]
@@ -115,7 +138,7 @@ async function resolveCategoryId(connection, payload) {
     return existingId;
   }
 
-  const code = buildGeneratedCode('custom_category');
+  const code = await buildUniqueGeneratedCode(connection, 'fish_categories', 'custom_category', payload.new_category_label);
   const [result] = await connection.query(
     'INSERT INTO fish_categories (code, label, sort_order, is_active) VALUES (?, ?, 999, 1)',
     [code, payload.new_category_label]
