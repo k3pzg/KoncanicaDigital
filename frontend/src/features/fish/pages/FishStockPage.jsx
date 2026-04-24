@@ -2,16 +2,31 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth/state/AuthContext';
 import { listFishStockAggregateRequest } from '../api/fishApi';
 
-function formatNumber(value) {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) {
+function formatInteger(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
     return '-';
   }
 
-  return numericValue.toLocaleString('hr-HR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 3
+  return parsed.toLocaleString('hr-HR', { maximumFractionDigits: 0 });
+}
+
+function formatDecimal(value, digits) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return '-';
+  }
+
+  return parsed.toLocaleString('hr-HR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
   });
+}
+
+function compareText(left, right, direction) {
+  return direction === 'desc'
+    ? right.localeCompare(left, 'hr-HR')
+    : left.localeCompare(right, 'hr-HR');
 }
 
 export function FishStockPage() {
@@ -19,6 +34,8 @@ export function FishStockPage() {
   const [rows, setRows] = useState([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [waterSort, setWaterSort] = useState('asc');
+  const [speciesSort, setSpeciesSort] = useState('asc');
 
   useEffect(() => {
     async function loadFishStock() {
@@ -39,7 +56,7 @@ export function FishStockPage() {
   }, [token]);
 
   const groupedRows = useMemo(() => {
-    return rows.reduce((groups, row) => {
+    const grouped = rows.reduce((groups, row) => {
       const groupKey = row.water_object_code ?? 'NEPOZNATO';
       if (!groups[groupKey]) {
         groups[groupKey] = [];
@@ -48,40 +65,60 @@ export function FishStockPage() {
       groups[groupKey].push(row);
       return groups;
     }, {});
-  }, [rows]);
 
-  const waterObjectCodes = Object.keys(groupedRows).sort((a, b) => a.localeCompare(b));
+    const sortedWaterCodes = Object.keys(grouped).sort((left, right) => compareText(left, right, waterSort));
+    return sortedWaterCodes.map((waterObjectCode) => ({
+      waterObjectCode,
+      rows: [...grouped[waterObjectCode]].sort((left, right) => {
+        const leftName = left.species_name ?? left.species_code ?? '';
+        const rightName = right.species_name ?? right.species_code ?? '';
+        return compareText(leftName, rightName, speciesSort);
+      })
+    }));
+  }, [rows, waterSort, speciesSort]);
 
   return (
     <section className="card fish-stock-card">
       <h2>Stanje ribljeg fonda</h2>
       <p>Izvor: http://localhost:3001/api/fish/stock</p>
+
+      <div className="fish-stock-filters">
+        <label>
+          Sortiranje objekta
+          <select value={waterSort} onChange={(event) => setWaterSort(event.target.value)}>
+            <option value="asc">A-Z</option>
+            <option value="desc">Z-A</option>
+          </select>
+        </label>
+
+        <label>
+          Sortiranje vrste
+          <select value={speciesSort} onChange={(event) => setSpeciesSort(event.target.value)}>
+            <option value="asc">A-Z</option>
+            <option value="desc">Z-A</option>
+          </select>
+        </label>
+      </div>
+
       {error ? <p className="error-text">{error}</p> : null}
       {isLoading ? <p>Učitavanje podataka...</p> : null}
+      {!isLoading && !error && groupedRows.length === 0 ? <p>Nema podataka za prikaz.</p> : null}
 
-      {!isLoading && !error && waterObjectCodes.length === 0 ? (
-        <p>Nema podataka za prikaz.</p>
-      ) : null}
-
-      {!isLoading && waterObjectCodes.length > 0 ? (
+      {!isLoading && groupedRows.length > 0 ? (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>water_object_code</th>
-                <th>species_code</th>
+                <th>species_name</th>
                 <th>count_total</th>
                 <th>weight_total_kg</th>
                 <th>weight_avg_kg</th>
               </tr>
             </thead>
             <tbody>
-              {waterObjectCodes.map((waterObjectCode) => (
-                <FragmentRows
-                  key={waterObjectCode}
-                  waterObjectCode={waterObjectCode}
-                  rows={groupedRows[waterObjectCode]}
-                />
+              {groupedRows.map((group) => (
+                <FishStockGroup key={group.waterObjectCode} group={group} />
               ))}
             </tbody>
           </table>
@@ -91,19 +128,19 @@ export function FishStockPage() {
   );
 }
 
-function FragmentRows({ waterObjectCode, rows }) {
+function FishStockGroup({ group }) {
   return (
     <>
       <tr className="group-row">
-        <td colSpan={5}>water_object_code: {waterObjectCode}</td>
+        <td colSpan={5}>water_object_code: {group.waterObjectCode}</td>
       </tr>
-      {rows.map((row, index) => (
-        <tr key={`${waterObjectCode}-${row.species_code}-${index}`}>
+      {group.rows.map((row, index) => (
+        <tr key={`${group.waterObjectCode}-${row.species_code}-${index}`}>
           <td>{row.water_object_code ?? '-'}</td>
-          <td>{row.species_code ?? '-'}</td>
-          <td>{formatNumber(row.count_total)}</td>
-          <td>{formatNumber(row.weight_total_kg)}</td>
-          <td>{formatNumber(row.weight_avg_kg)}</td>
+          <td>{row.species_name ?? '-'}</td>
+          <td>{formatInteger(row.count_total)}</td>
+          <td>{formatDecimal(row.weight_total_kg, 2)}</td>
+          <td>{formatDecimal(row.weight_avg_kg, 3)}</td>
         </tr>
       ))}
     </>
