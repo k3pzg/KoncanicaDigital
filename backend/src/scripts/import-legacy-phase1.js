@@ -591,27 +591,39 @@ async function importFishEntryEvents(connection, summary) {
     }
 
     const speciesId = context.speciesIdByCode.get(speciesCode);
-    const categoryId = context.categoryIdByCode.get(categoryCode) ?? context.fallbackCategoryId;
-    if (!speciesId || !categoryId) {
-      summary.fish.skipped += 1;
-      incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
-      if (summary.fish.skippedRows.length < 20) {
-        summary.fish.skippedRows.push({
-          id: row.id,
-          species: row.species,
-          category: row.category,
-          reason: 'target_lookup_missing'
-        });
-      }
-      if (!speciesId) {
-        summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
-      }
-      if (categoryCode && !categoryId) {
-        summary.fish.unmappedCategories.add(`${row.category} -> ${categoryCode} (missing target)`);
-      }
-      continue;
-    }
 
+const categoryId =
+  context.categoryIdByCode.get(categoryCode) ??
+  context.fallbackCategoryId;
+
+// species MORA postojati → bez njega nema smisla dalje
+if (!speciesId) {
+  summary.fish.skipped += 1;
+  incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
+
+  if (summary.fish.skippedRows.length < 20) {
+    summary.fish.skippedRows.push({
+      id: row.id,
+      species: row.species,
+      category: row.category,
+      reason: 'target_lookup_missing'
+    });
+  }
+
+  summary.fish.unmappedSpecies.add(
+    `${row.species} -> ${speciesCode} (missing target)`
+  );
+
+  continue;
+}
+
+// 🔴 kategorija više NE smije rušit import
+// fallback "unknown" se koristi automatski
+if (!categoryId) {
+  throw new Error(
+    'Fallback category "unknown" nije učitan u categoryIdByCode mapu'
+  );
+}
     const countTotal = toNumberOrNull(row.count_in);
     const weightTotal = toNumberOrNull(row.weight_total_kg);
     const weightAvgRaw = toNumberOrNull(row.weight_avg_kg);
