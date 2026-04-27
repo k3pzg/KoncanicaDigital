@@ -2,11 +2,14 @@ import {
   createFishControlEvent,
   createFishEntryEvent,
   createFishEntryEvents,
+  createFishExitEvent,
   findFishControlEventById,
   findFishEntryEventById,
+  findFishExitEventById,
   listFishCategories,
   listFishControlEvents,
   listFishEntryEvents,
+  listFishExitEvents,
   listFishSpecies,
   listFishStockAggregate,
   listFishStockCurrent
@@ -14,9 +17,11 @@ import {
 import {
   normalizeControlPayload,
   normalizeEntryPayload,
+  normalizeExitPayload,
   normalizeEntryPayloads,
   validateControlPayload,
-  validateEntryPayload
+  validateEntryPayload,
+  validateExitPayload
 } from '../validation/fish.validation.js';
 
 export async function getFishSpecies() {
@@ -69,6 +74,25 @@ export async function addFishEntryEvents(payload) {
 
 export async function getFishControlEvents() {
   return listFishControlEvents();
+}
+
+export async function getFishExitEvents() {
+  return listFishExitEvents();
+}
+
+export async function getFishExitEventById(id) {
+  return findFishExitEventById(id);
+}
+
+export async function addFishExitEvent(payload) {
+  const normalized = normalizeExitPayload(payload);
+  const validationError = validateExitPayload(normalized);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const id = await createFishExitEvent(normalized);
+  return findFishExitEventById(id);
 }
 
 export async function getFishControlEventById(id) {

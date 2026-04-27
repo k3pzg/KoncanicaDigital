@@ -1,4 +1,9 @@
-import { FISH_ENTRY_EVENT_TYPES, FISH_SOURCE_KINDS } from '../constants/fish.constants.js';
+import {
+  FISH_DESTINATION_KINDS,
+  FISH_ENTRY_EVENT_TYPES,
+  FISH_EXIT_EVENT_TYPES,
+  FISH_SOURCE_KINDS
+} from '../constants/fish.constants.js';
 
 function toNumberOrNull(value) {
   if (value === null || value === undefined || value === '') {
@@ -117,6 +122,88 @@ export function validateEntryPayload(payload) {
   return null;
 }
 
+function normalizeDestinationLabel(payload) {
+  if (typeof payload.destination === 'string' && payload.destination.trim()) {
+    return payload.destination.trim();
+  }
+
+  if (typeof payload.destination_label === 'string' && payload.destination_label.trim()) {
+    return payload.destination_label.trim();
+  }
+
+  return null;
+}
+
+export function normalizeExitPayload(payload) {
+  const countTotal = Number(payload.count_total ?? payload.count_out);
+  const weightAvg = toPositiveNumberOrNull(payload.weight_avg_kg);
+  const weightTotalRaw = toPositiveNumberOrNull(payload.weight_total_kg);
+  const fallbackWeightTotal = Number.isFinite(countTotal) && countTotal > 0 && Number.isFinite(weightAvg)
+    ? countTotal * weightAvg
+    : NaN;
+
+  const weightTotal = Number.isFinite(weightTotalRaw) ? weightTotalRaw : fallbackWeightTotal;
+
+  return {
+    water_object_id: Number(payload.water_object_id),
+    event_date: payload.event_date,
+    event_type: payload.event_type || 'izlov',
+    species_id: payload.species_id === null || payload.species_id === undefined || payload.species_id === ''
+      ? null
+      : Number(payload.species_id),
+    category_id: payload.category_id === null || payload.category_id === undefined || payload.category_id === ''
+      ? null
+      : Number(payload.category_id),
+    new_species_label: payload.new_species_label?.trim() || null,
+    new_category_label: payload.new_category_label?.trim() || null,
+    count_total: countTotal,
+    weight_avg_kg: Number.isFinite(weightAvg)
+      ? weightAvg
+      : (Number.isFinite(weightTotal) && Number.isFinite(countTotal) && countTotal > 0 ? weightTotal / countTotal : null),
+    weight_total_kg: weightTotal,
+    destination_kind: payload.destination_kind || 'ostalo',
+    destination_water_object_id: toNumberOrNull(payload.destination_water_object_id),
+    destination_label: normalizeDestinationLabel(payload),
+    notes: payload.notes?.trim() || null
+  };
+}
+
+export function validateExitPayload(payload) {
+  if (!Number.isInteger(payload.water_object_id) || payload.water_object_id <= 0) {
+    return 'water_object_id is required';
+  }
+  if (!payload.event_date) {
+    return 'event_date is required';
+  }
+  if (!FISH_EXIT_EVENT_TYPES.includes(payload.event_type)) {
+    return `event_type must be one of: ${FISH_EXIT_EVENT_TYPES.join(', ')}`;
+  }
+  if ((!Number.isInteger(payload.species_id) || payload.species_id <= 0) && !payload.new_species_label) {
+    return 'species_id or new_species_label is required';
+  }
+  if ((!Number.isInteger(payload.category_id) || payload.category_id <= 0) && !payload.new_category_label) {
+    return 'category_id or new_category_label is required';
+  }
+  if (!Number.isFinite(payload.count_total) || payload.count_total <= 0) {
+    return 'count_total must be greater than 0';
+  }
+  if (!Number.isFinite(payload.weight_total_kg) || payload.weight_total_kg <= 0) {
+    return 'weight_total_kg must be greater than 0';
+  }
+  if (!FISH_DESTINATION_KINDS.includes(payload.destination_kind)) {
+    return `destination_kind must be one of: ${FISH_DESTINATION_KINDS.join(', ')}`;
+  }
+
+  if (
+    payload.destination_kind === 'interni_objekt' &&
+    (!Number.isFinite(payload.destination_water_object_id) || payload.destination_water_object_id <= 0)
+  ) {
+    return 'destination_water_object_id is required when destination_kind is interni_objekt';
+  }
+
+  return null;
+}
+
 export function normalizeControlPayload(payload) {
   const lines = Array.isArray(payload.lines) ? payload.lines : [];
 
@@ -128,6 +215,7 @@ export function normalizeControlPayload(payload) {
     notes: payload.notes?.trim() || null,
     lines: lines.map((line) => ({
       species_id: Number(line.species_id),
+      category_id: Number(line.category_id),
       sample_count: Number(line.sample_count),
       sample_weight_total_kg: toNumberOrNull(line.sample_weight_total_kg),
       sample_weight_avg_kg: toNumberOrNull(line.sample_weight_avg_kg),
@@ -152,6 +240,9 @@ export function validateControlPayload(payload) {
   for (const [index, line] of payload.lines.entries()) {
     if (!Number.isInteger(line.species_id) || line.species_id <= 0) {
       return `lines[${index}].species_id is required`;
+    }
+    if (!Number.isInteger(line.category_id) || line.category_id <= 0) {
+      return `lines[${index}].category_id is required`;
     }
     if (!Number.isFinite(line.sample_count) || line.sample_count <= 0) {
       return `lines[${index}].sample_count must be greater than 0`;

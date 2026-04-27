@@ -8,11 +8,12 @@ const usersToSeed = [
 ];
 
 const fishCategoriesToSeed = [
-  { code: 'mjesecnjak', label: 'Mjesecnjak', sort_order: 10 },
-  { code: 'jednogodisnja_mladj', label: 'Jednogodisnja mladj', sort_order: 20 },
-  { code: 'dvogodisnja_mladj', label: 'Dvogodisnja mladj', sort_order: 30 },
+  { code: 'mjesecnjak', label: 'Mjesečnjak', sort_order: 10 },
+  { code: 'jednogodisnja_mladj', label: 'Jednogodišnja mlađ', sort_order: 20 },
+  { code: 'dvogodisnja_mladj', label: 'Dvogodišnja mlađ', sort_order: 30 },
   { code: 'konzum', label: 'Konzum', sort_order: 40 },
-  { code: 'matica', label: 'Matica', sort_order: 50 }
+  { code: 'matica', label: 'Matica', sort_order: 50 },
+  { code: 'unknown', label: 'Nepoznato', sort_order: 999 }
 ];
 
 const fishSpeciesToSeed = [
@@ -21,6 +22,7 @@ const fishSpeciesToSeed = [
   { code: 'amur', label: 'Amur' },
   { code: 'tolstolobik_sivi', label: 'Tolstolobik sivi' },
   { code: 'tolstolobik_bijeli', label: 'Tolstolobik bijeli' },
+  { code: 'linjak', label: 'Linjak' },
   { code: 'som', label: 'Som' },
   { code: 'smud', label: 'Smuđ' },
   { code: 'stuka', label: 'Štuka' }
