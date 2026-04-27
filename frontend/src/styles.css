@@ -175,3 +175,28 @@ button { cursor: pointer; }
   color: #1e293b;
   font-weight: 600;
 }
+
+.fish-exit-form {
+  border: 1px solid #dbeafe;
+  border-radius: 0.6rem;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.fish-exit-form h3 {
+  margin: 0;
+}
+
+.fish-exit-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.fish-exit-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}

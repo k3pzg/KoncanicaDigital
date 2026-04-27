@@ -58,3 +58,12 @@ export function listFishStockCurrentRequest(token, waterObjectId) {
 export function listFishStockAggregateRequest(token) {
   return apiRequest('/api/fish/stock', { headers: authHeaders(token) });
 }
+
+
+export function createFishExitEventRequest(token, payload) {
+  return apiRequest('/fish-exit-events', {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload)
+  });
+}

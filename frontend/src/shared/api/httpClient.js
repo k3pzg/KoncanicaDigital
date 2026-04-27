@@ -16,7 +16,8 @@ function translateBackendMessage(message) {
     'control_date is required': 'Datum kontrole je obavezan.',
     'species_id is required': 'Vrsta ribe je obavezna.',
     'category_id is required': 'Kategorija je obavezna.',
-    'at least one control line is required': 'Potreban je barem jedan redak kontrole.'
+    'at least one control line is required': 'Potreban je barem jedan redak kontrole.',
+    'izlov cannot reduce stock below zero': 'Izlov ne može smanjiti stanje ispod nule.'
   };
 
   return map[message] ?? message;

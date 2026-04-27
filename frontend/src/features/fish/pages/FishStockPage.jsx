@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth/state/AuthContext';
-import { listFishStockAggregateRequest } from '../api/fishApi';
+import { listWaterObjectsRequest } from '../../water-objects/api/waterObjectsApi';
+import {
+  createFishExitEventRequest,
+  listFishCategoriesRequest,
+  listFishSpeciesRequest,
+  listFishStockAggregateRequest
+} from '../api/fishApi';
 
 function formatInteger(value) {
   const parsed = Number(value);
@@ -72,7 +78,7 @@ function formatSpeciesName(code) {
 }
 
 function formatCategoryName(code) {
-  if (code == null) {
+  if (!code) {
     return 'Bez kategorije';
   }
 
@@ -84,38 +90,73 @@ function formatCategoryName(code) {
   return capitalizeWords(normalizedCode.replaceAll('_', ' '));
 }
 
+const initialExitForm = {
+  water_object_id: '',
+  event_date: '',
+  species_id: '',
+  category_id: '',
+  count_total: '',
+  weight_avg_kg: '',
+  weight_total_kg: '',
+  notes: ''
+};
+
 export function FishStockPage() {
   const { token } = useAuth();
   const [rows, setRows] = useState([]);
+  const [waterObjects, setWaterObjects] = useState([]);
+  const [speciesOptions, setSpeciesOptions] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmittingExit, setIsSubmittingExit] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
   const [waterSort, setWaterSort] = useState('asc');
   const [speciesSort, setSpeciesSort] = useState('asc');
   const [search, setSearch] = useState('');
+  const [exitForm, setExitForm] = useState(initialExitForm);
+
+  async function loadFishStockAndLookups() {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const [stockResponse, waterObjectsResponse, speciesResponse, categoriesResponse] = await Promise.all([
+        listFishStockAggregateRequest(token),
+        listWaterObjectsRequest(token),
+        listFishSpeciesRequest(token),
+        listFishCategoriesRequest(token)
+      ]);
+
+      setRows(Array.isArray(stockResponse) ? stockResponse : []);
+      setWaterObjects(waterObjectsResponse.items ?? []);
+      setSpeciesOptions(speciesResponse.items ?? []);
+      setCategoryOptions(categoriesResponse.items ?? []);
+    } catch (loadError) {
+      setError(loadError.message || 'Neuspješno učitavanje stanja ribljeg fonda.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function loadFishStock() {
-      setIsLoading(true);
-      setError('');
-
-      try {
-        const response = await listFishStockAggregateRequest(token);
-        setRows(Array.isArray(response) ? response : []);
-      } catch (loadError) {
-        setError(loadError.message || 'Neuspješno učitavanje stanja ribljeg fonda.');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadFishStock();
+    loadFishStockAndLookups();
   }, [token]);
 
   const normalizedRows = useMemo(() => {
-    return rows.map((row) => ({
-      ...row,
-      category_name: formatCategoryName(row.category_name)
-    }));
+    return rows.map((row) => {
+      const speciesName = row.species_name ?? row.species_label ?? formatSpeciesName(row.species_code);
+      const categoryName = row.category_name ?? row.category_label ?? formatCategoryName(row.category_code);
+      const waterObjectCode = row.water_object_code ?? row.water_object_label ?? 'NEPOZNATO';
+
+      return {
+        ...row,
+        species_display: speciesName,
+        category_display: categoryName,
+        water_object_display: waterObjectCode
+      };
+    });
   }, [rows]);
 
   const filteredRows = useMemo(() => {
@@ -126,9 +167,9 @@ export function FishStockPage() {
         return true;
       }
 
-      const waterCode = String(row.water_object_code ?? '').toLocaleLowerCase('hr-HR');
-      const speciesName = String(row.species_name ?? '').toLocaleLowerCase('hr-HR');
-      const categoryName = String(row.category_name ?? '').toLocaleLowerCase('hr-HR');
+      const waterCode = String(row.water_object_display ?? '').toLocaleLowerCase('hr-HR');
+      const speciesName = String(row.species_display ?? '').toLocaleLowerCase('hr-HR');
+      const categoryName = String(row.category_display ?? '').toLocaleLowerCase('hr-HR');
 
       return (
         waterCode.includes(normalizedSearch)
@@ -140,7 +181,7 @@ export function FishStockPage() {
 
   const waterGroups = useMemo(() => {
     const grouped = filteredRows.reduce((groups, row) => {
-      const waterCode = row.water_object_code ?? 'NEPOZNATO';
+      const waterCode = row.water_object_display ?? 'NEPOZNATO';
 
       if (!groups[waterCode]) {
         groups[waterCode] = [];
@@ -154,9 +195,12 @@ export function FishStockPage() {
       .sort((left, right) => compareText(left, right, waterSort))
       .map((waterObjectCode) => {
         const rowsByWaterObject = [...grouped[waterObjectCode]].sort((left, right) => {
-          const leftName = left.species_name ?? left.species_code ?? '';
-          const rightName = right.species_name ?? right.species_code ?? '';
-          return compareText(leftName, rightName, speciesSort);
+          const speciesComparison = compareText(left.species_display ?? '', right.species_display ?? '', speciesSort);
+          if (speciesComparison !== 0) {
+            return speciesComparison;
+          }
+
+          return compareText(left.category_display ?? '', right.category_display ?? '', speciesSort);
         });
 
         const totals = rowsByWaterObject.reduce(
@@ -197,10 +241,212 @@ export function FishStockPage() {
     };
   }, [filteredRows]);
 
+  function handleExitChange(event) {
+    const { name, value } = event.target;
+    setExitForm((prev) => {
+      const next = { ...prev, [name]: value };
+      const count = Number(next.count_total);
+      const weightAvg = Number(next.weight_avg_kg);
+      const weightTotal = Number(next.weight_total_kg);
+
+      if (name === 'weight_avg_kg' && Number.isFinite(count) && count > 0 && Number.isFinite(weightAvg) && weightAvg > 0) {
+        next.weight_total_kg = String((count * weightAvg).toFixed(3));
+      }
+
+      if (name === 'weight_total_kg' && Number.isFinite(count) && count > 0 && Number.isFinite(weightTotal) && weightTotal > 0) {
+        next.weight_avg_kg = String((weightTotal / count).toFixed(3));
+      }
+
+      if (name === 'count_total' && Number.isFinite(count) && count > 0) {
+        if (Number.isFinite(weightAvg) && weightAvg > 0) {
+          next.weight_total_kg = String((count * weightAvg).toFixed(3));
+        } else if (Number.isFinite(weightTotal) && weightTotal > 0) {
+          next.weight_avg_kg = String((weightTotal / count).toFixed(3));
+        }
+      }
+
+      return next;
+    });
+  }
+
+  async function handleExitSubmit(event) {
+    event.preventDefault();
+    setSubmitError('');
+    setSubmitSuccess('');
+
+    if (!exitForm.water_object_id || !exitForm.event_date || !exitForm.species_id || !exitForm.category_id) {
+      setSubmitError('Popunite objekt, datum, vrstu i kategoriju.');
+      return;
+    }
+
+    const countTotal = Number(exitForm.count_total);
+    const weightTotal = Number(exitForm.weight_total_kg);
+
+    if (!Number.isFinite(countTotal) || countTotal <= 0) {
+      setSubmitError('Količina mora biti broj veći od 0.');
+      return;
+    }
+
+    if (!Number.isFinite(weightTotal) || weightTotal <= 0) {
+      setSubmitError('Ukupna masa mora biti broj veći od 0.');
+      return;
+    }
+
+    setIsSubmittingExit(true);
+
+    try {
+      await createFishExitEventRequest(token, {
+        ...exitForm,
+        event_type: 'izlov',
+        destination_kind: 'ostalo',
+        destination_label: 'Izlov',
+        water_object_id: Number(exitForm.water_object_id),
+        species_id: Number(exitForm.species_id),
+        category_id: Number(exitForm.category_id),
+        count_total: countTotal,
+        weight_total_kg: weightTotal,
+        weight_avg_kg: Number(exitForm.weight_avg_kg) || weightTotal / countTotal
+      });
+
+      setSubmitSuccess('Izlov je uspješno spremljen. Stanje je osvježeno.');
+      setExitForm(initialExitForm);
+      await loadFishStockAndLookups();
+    } catch (submitErrorValue) {
+      setSubmitError(submitErrorValue.message || 'Neuspješno spremanje izlova.');
+    } finally {
+      setIsSubmittingExit(false);
+    }
+  }
+
   return (
     <section className="card fish-stock-card">
       <h2>Stanje ribljeg fonda</h2>
-      <p>Izvor: http://localhost:3001/api/fish/stock</p>
+      <p>Prikaz po objektu, vrsti i kategoriji.</p>
+
+      <form className="fish-exit-form" onSubmit={handleExitSubmit}>
+        <h3>Evidencija izlova</h3>
+
+        <div className="fish-exit-grid">
+          <label>
+            Vodni objekt
+            <select
+              name="water_object_id"
+              value={exitForm.water_object_id}
+              onChange={handleExitChange}
+              disabled={isLoading || isSubmittingExit}
+              required
+            >
+              <option value="">Odaberite objekt</option>
+              {waterObjects.map((item) => (
+                <option key={item.id} value={item.id}>{item.code} — {item.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Datum
+            <input
+              type="date"
+              name="event_date"
+              value={exitForm.event_date}
+              onChange={handleExitChange}
+              disabled={isLoading || isSubmittingExit}
+              required
+            />
+          </label>
+
+          <label>
+            Vrsta
+            <select
+              name="species_id"
+              value={exitForm.species_id}
+              onChange={handleExitChange}
+              disabled={isLoading || isSubmittingExit}
+              required
+            >
+              <option value="">Odaberite vrstu</option>
+              {speciesOptions.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Kategorija
+            <select
+              name="category_id"
+              value={exitForm.category_id}
+              onChange={handleExitChange}
+              disabled={isLoading || isSubmittingExit}
+              required
+            >
+              <option value="">Odaberite kategoriju</option>
+              {categoryOptions.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Količina (kom)
+            <input
+              type="number"
+              name="count_total"
+              value={exitForm.count_total}
+              onChange={handleExitChange}
+              min="1"
+              step="1"
+              disabled={isLoading || isSubmittingExit}
+              required
+            />
+          </label>
+
+          <label>
+            Prosječna masa (kg)
+            <input
+              type="number"
+              name="weight_avg_kg"
+              value={exitForm.weight_avg_kg}
+              onChange={handleExitChange}
+              min="0"
+              step="0.001"
+              disabled={isLoading || isSubmittingExit}
+            />
+          </label>
+
+          <label>
+            Ukupna masa (kg)
+            <input
+              type="number"
+              name="weight_total_kg"
+              value={exitForm.weight_total_kg}
+              onChange={handleExitChange}
+              min="0.001"
+              step="0.001"
+              disabled={isLoading || isSubmittingExit}
+              required
+            />
+          </label>
+        </div>
+
+        <label>
+          Napomena
+          <textarea
+            name="notes"
+            value={exitForm.notes}
+            onChange={handleExitChange}
+            disabled={isLoading || isSubmittingExit}
+            rows={2}
+          />
+        </label>
+
+        {submitError ? <p className="error-text">{submitError}</p> : null}
+        {submitSuccess ? <p>{submitSuccess}</p> : null}
+
+        <button type="submit" disabled={isLoading || isSubmittingExit}>
+          {isSubmittingExit ? 'Spremanje...' : 'Spremi izlov'}
+        </button>
+      </form>
 
       <div className="fish-stock-filters">
         <label>
@@ -212,7 +458,7 @@ export function FishStockPage() {
         </label>
 
         <label>
-          Sortiranje vrste
+          Sortiranje vrste/kategorije
           <select value={speciesSort} onChange={(event) => setSpeciesSort(event.target.value)}>
             <option value="asc">A-Z</option>
             <option value="desc">Z-A</option>
@@ -269,9 +515,12 @@ export function FishStockPage() {
                   </thead>
                   <tbody>
                     {group.rows.map((row, index) => (
-                      <tr key={`${group.waterObjectCode}-${row.species_code}-${index}`} className="fish-stock-data-row">
-                        <td>{row.species_name ?? formatSpeciesName(row.species_code)}</td>
-                        <td>{row.category_name}</td>
+                      <tr
+                        key={`${group.waterObjectCode}-${row.species_code}-${row.category_code ?? 'no-category'}-${index}`}
+                        className="fish-stock-data-row"
+                      >
+                        <td>{row.species_display}</td>
+                        <td>{row.category_display}</td>
                         <td className="numeric-cell">{formatInteger(row.count_total)}</td>
                         <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 2)}</td>
                         <td className="numeric-cell">{formatDecimal(row.weight_avg_kg, 2)}</td>
