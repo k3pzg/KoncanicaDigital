@@ -275,18 +275,21 @@ function mapCategoryCode(categoryText) {
 }
 
 function auditInvalidFishRow(row, pondCode, invalidFields, reason) {
-  console.log('[FISH_IMPORT_AUDIT] invalid_row', {
+  const auditRow = {
     legacy_id: row.id ?? null,
     water_object: pondCode ?? null,
     species: row.species ?? null,
     category: row.category ?? null,
     event_date: row.event_date ?? null,
-    count_in: row.count_in ?? null,
-    weight_avg_kg: row.weight_avg_kg ?? null,
-    weight_total_kg: row.weight_total_kg ?? null,
+    count: row.count_in ?? null,
+    avg_weight: row.weight_avg_kg ?? null,
+    total_weight: row.weight_total_kg ?? null,
     invalid_fields: invalidFields,
     reason
-  });
+  };
+
+  console.log('[FISH_IMPORT_AUDIT] invalid_numeric_or_date', auditRow);
+  return auditRow;
 }
 
 function hasCategoryValue(value) {
@@ -592,38 +595,32 @@ async function importFishEntryEvents(connection, summary) {
     }
 
     const speciesId = context.speciesIdByCode.get(speciesCode);
-    const categoryId =
-      context.categoryIdByCode.get(categoryCode) ??
-      context.fallbackCategoryId;
+    const categoryId = context.categoryIdByCode.get(categoryCode) ?? context.fallbackCategoryId;
 
-// species MORA postojati → bez njega nema smisla dalje
-if (!speciesId) {
-  summary.fish.skipped += 1;
-  incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
+    if (!speciesId) {
+      summary.fish.skipped += 1;
+      incrementReason(summary.fish.skippedReasons, 'target_lookup_missing');
 
-  if (summary.fish.skippedRows.length < 20) {
-    summary.fish.skippedRows.push({
-      id: row.id,
-      species: row.species,
-      category: row.category,
-      reason: 'target_lookup_missing'
-    });
-  }
+      if (summary.fish.skippedRows.length < 20) {
+        summary.fish.skippedRows.push({
+          id: row.id,
+          species: row.species,
+          category: row.category,
+          reason: 'target_lookup_missing'
+        });
+      }
 
-  summary.fish.unmappedSpecies.add(
-    `${row.species} -> ${speciesCode} (missing target)`
-  );
+      summary.fish.unmappedSpecies.add(`${row.species} -> ${speciesCode} (missing target)`);
+      continue;
+    }
 
-  continue;
-}
+    if (!categoryId) {
+      throw new Error('Fallback category "unknown" is missing from fish_categories.');
+    }
 
-// 🔴 kategorija više NE smije rušit import
-// fallback "unknown" se koristi automatski
-if (!categoryId) {
-  throw new Error(
-    'Fallback category "unknown" nije učitan u categoryIdByCode mapu'
-  );
-}
+    if (!hasCategory) {
+      summary.fish.categoryFallbackUsed += 1;
+    }
     const countTotal = toNumberOrNull(row.count_in);
     const weightTotal = toNumberOrNull(row.weight_total_kg);
     const weightAvgRaw = toNumberOrNull(row.weight_avg_kg);
@@ -652,7 +649,10 @@ if (!categoryId) {
         });
       }
 
-      auditInvalidFishRow(row, pondCode, invalidFields, 'invalid_numeric_or_date');
+      const invalidAuditRow = auditInvalidFishRow(row, pondCode, invalidFields, 'invalid_numeric_or_date');
+      if (summary.fish.invalidNumericOrDateRows.length < 100) {
+        summary.fish.invalidNumericOrDateRows.push(invalidAuditRow);
+      }
       continue;
     }
 
@@ -731,13 +731,21 @@ function createSummary() {
       skipped: 0,
       unmappedSpecies: new Set(),
       unmappedCategories: new Set(),
+      categoryFallbackUsed: 0,
       skippedReasons: {},
-      skippedRows: []
+      skippedRows: [],
+      invalidNumericOrDateRows: []
     }
   };
 }
 
 function printSummary(summary) {
+  const modeNotice = summary.mode === 'APPLY'
+    ? 'APPLY MODE: changes are persisted to the database.'
+    : 'DRY-RUN MODE: no data is written. Re-run with --apply to persist.';
+
+  console.log('--- LEGACY IMPORT EXECUTION MODE ---');
+  console.log(modeNotice);
   console.log('--- LEGACY IMPORT SUMMARY ---');
   console.log(`Mode: ${summary.mode}`);
   console.log(`Phase: ${summary.phase}`);
@@ -747,10 +755,12 @@ function printSummary(summary) {
   console.log(`Fish rows skipped: ${summary.fish.skipped}`);
   console.log('Unmapped species:', [...summary.fish.unmappedSpecies]);
   console.log('Unmapped categories:', [...summary.fish.unmappedCategories]);
+  console.log('Rows imported with missing category -> fallback "unknown":', summary.fish.categoryFallbackUsed);
   console.log('Water skip reasons:', summary.water.skippedReasons);
   console.log('Fish skip reasons:', summary.fish.skippedReasons);
   console.log('Water skipped rows (max 8):', summary.water.skippedRows);
   console.log('Fish skipped rows (top 20):', summary.fish.skippedRows);
+  console.log('Fish invalid_numeric_or_date rows (max 100):', summary.fish.invalidNumericOrDateRows);
 }
 
 async function run() {
@@ -759,6 +769,12 @@ async function run() {
   const summary = createSummary();
 
   try {
+    console.log(
+      shouldApply
+        ? '[LEGACY_IMPORT] APPLY mode enabled via --apply. Changes will be committed if import succeeds.'
+        : '[LEGACY_IMPORT] DRY-RUN mode (default). No writes will be made; review summary and rerun with --apply when ready.'
+    );
+
     if (shouldApply) {
       await connection.beginTransaction();
     }
