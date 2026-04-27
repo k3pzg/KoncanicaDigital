@@ -188,11 +188,12 @@ export async function createFishEntryEvents(payloads) {
     const insertedIds = [];
 
     for (const payload of payloads) {
-      const { insertId, speciesId } = await insertFishEntryEvent(connection, payload);
+      const { insertId, speciesId, categoryId } = await insertFishEntryEvent(connection, payload);
 
       await upsertStockFromEntry(connection, {
         ...payload,
-        species_id: speciesId
+        species_id: speciesId,
+        category_id: categoryId
       });
 
       insertedIds.push(insertId);
@@ -214,42 +215,163 @@ export async function createFishEntryEvent(payload) {
 }
 
 async function upsertStockFromEntry(connection, payload) {
-  const [rows] = await connection.query(
-    'SELECT * FROM fish_stock_current WHERE water_object_id = ? AND species_id = ? LIMIT 1',
-    [payload.water_object_id, payload.species_id]
-  );
-
-  if (!rows[0]) {
-    const countTotal = payload.count_total;
-    const weightTotal = payload.weight_total_kg;
-    const weightAvg = countTotal > 0 ? weightTotal / countTotal : 0;
-
-    await connection.query(
-      `INSERT INTO fish_stock_current (
-        water_object_id, species_id, count_total, weight_avg_kg, weight_total_kg,
-        last_refresh_type, last_refresh_date, notes
-      ) VALUES (?, ?, ?, ?, ?, 'entry', ?, ?)`,
-      [payload.water_object_id, payload.species_id, countTotal, weightAvg, weightTotal, payload.event_date, payload.notes]
-    );
-    return;
-  }
-
-  const existing = rows[0];
-  const countTotal = Number(existing.count_total) + payload.count_total;
-  const weightTotal = Number(existing.weight_total_kg) + payload.weight_total_kg;
+  const existing = await findCurrentStockRow(connection, payload);
+  const countTotal = Number(existing?.count_total ?? 0) + payload.count_total;
+  const weightTotal = Number(existing?.weight_total_kg ?? 0) + payload.weight_total_kg;
   const weightAvg = countTotal > 0 ? weightTotal / countTotal : 0;
 
+  await upsertCurrentStockRow(connection, {
+    ...payload,
+    count_total: countTotal,
+    weight_total_kg: weightTotal,
+    weight_avg_kg: weightAvg,
+    last_refresh_type: 'entry',
+    last_refresh_date: payload.event_date
+  });
+}
+
+function mapExitRow(row) {
+  return {
+    ...row,
+    destination_water_object_id: row.destination_water_object_id ?? null
+  };
+}
+
+export async function listFishExitEvents() {
+  const db = getDatabasePool();
+  const [rows] = await db.query(
+    `SELECT fxe.*, wo.code AS water_object_code, fs.code AS species_code, fs.label AS species_label,
+            fc.code AS category_code, fc.label AS category_label,
+            dwo.code AS destination_water_object_code
+     FROM fish_exit_events fxe
+     INNER JOIN water_objects wo ON wo.id = fxe.water_object_id
+     INNER JOIN fish_species fs ON fs.id = fxe.species_id
+     INNER JOIN fish_categories fc ON fc.id = fxe.category_id
+     LEFT JOIN water_objects dwo ON dwo.id = fxe.destination_water_object_id
+     ORDER BY fxe.event_date DESC, fxe.id DESC`
+  );
+
+  return rows.map(mapExitRow);
+}
+
+export async function findFishExitEventById(id) {
+  const db = getDatabasePool();
+  const [rows] = await db.query(
+    `SELECT fxe.*, wo.code AS water_object_code, fs.code AS species_code, fs.label AS species_label,
+            fc.code AS category_code, fc.label AS category_label,
+            dwo.code AS destination_water_object_code
+     FROM fish_exit_events fxe
+     INNER JOIN water_objects wo ON wo.id = fxe.water_object_id
+     INNER JOIN fish_species fs ON fs.id = fxe.species_id
+     INNER JOIN fish_categories fc ON fc.id = fxe.category_id
+     LEFT JOIN water_objects dwo ON dwo.id = fxe.destination_water_object_id
+     WHERE fxe.id = ?
+     LIMIT 1`,
+    [id]
+  );
+
+  return rows[0] ? mapExitRow(rows[0]) : null;
+}
+
+export async function createFishExitEvent(payload) {
+  const db = getDatabasePool();
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+    const speciesId = await resolveSpeciesId(connection, payload);
+    const categoryId = await resolveCategoryId(connection, payload);
+
+    const [result] = await connection.query(
+      `INSERT INTO fish_exit_events (
+        water_object_id, event_date, event_type, species_id, category_id, count_total,
+        weight_avg_kg, weight_total_kg, destination_kind, destination_water_object_id, destination_label, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        payload.water_object_id,
+        payload.event_date,
+        payload.event_type,
+        speciesId,
+        categoryId,
+        payload.count_total,
+        payload.weight_avg_kg,
+        payload.weight_total_kg,
+        payload.destination_kind,
+        payload.destination_water_object_id,
+        payload.destination_label,
+        payload.notes
+      ]
+    );
+
+    await upsertStockFromExit(connection, {
+      ...payload,
+      species_id: speciesId,
+      category_id: categoryId
+    });
+
+    await connection.commit();
+    return result.insertId;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function upsertStockFromExit(connection, payload) {
+  const existing = await findCurrentStockRow(connection, payload);
+  const countTotal = Number(existing?.count_total ?? 0) - payload.count_total;
+  const weightTotal = Number(existing?.weight_total_kg ?? 0) - payload.weight_total_kg;
+
+  if (countTotal < 0 || weightTotal < 0) {
+    throw new Error('izlov cannot reduce stock below zero');
+  }
+
+  const weightAvg = countTotal > 0 ? weightTotal / countTotal : 0;
+  await upsertCurrentStockRow(connection, {
+    ...payload,
+    count_total: countTotal,
+    weight_total_kg: weightTotal,
+    weight_avg_kg: weightAvg,
+    last_refresh_type: 'izlov',
+    last_refresh_date: payload.event_date
+  });
+}
+
+async function findCurrentStockRow(connection, payload) {
+  const [rows] = await connection.query(
+    'SELECT * FROM fish_stock_current WHERE water_object_id = ? AND species_id = ? AND category_id = ? LIMIT 1',
+    [payload.water_object_id, payload.species_id, payload.category_id]
+  );
+  return rows[0] ?? null;
+}
+
+async function upsertCurrentStockRow(connection, payload) {
   await connection.query(
-    `UPDATE fish_stock_current
-     SET count_total = ?,
-         weight_total_kg = ?,
-         weight_avg_kg = ?,
-         last_refresh_type = 'entry',
-         last_refresh_date = ?,
-         notes = ?,
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [countTotal, weightTotal, weightAvg, payload.event_date, payload.notes, existing.id]
+    `INSERT INTO fish_stock_current (
+      water_object_id, species_id, category_id, count_total, weight_avg_kg, weight_total_kg,
+      last_refresh_type, last_refresh_date, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      count_total = VALUES(count_total),
+      weight_avg_kg = VALUES(weight_avg_kg),
+      weight_total_kg = VALUES(weight_total_kg),
+      last_refresh_type = VALUES(last_refresh_type),
+      last_refresh_date = VALUES(last_refresh_date),
+      notes = VALUES(notes),
+      updated_at = CURRENT_TIMESTAMP`,
+    [
+      payload.water_object_id,
+      payload.species_id,
+      payload.category_id,
+      payload.count_total,
+      payload.weight_avg_kg,
+      payload.weight_total_kg,
+      payload.last_refresh_type,
+      payload.last_refresh_date,
+      payload.notes
+    ]
   );
 }
 
@@ -282,9 +404,11 @@ export async function findFishControlEventById(id) {
 
   const event = eventRows[0];
   const [lineRows] = await db.query(
-    `SELECT fcl.*, fs.code AS species_code, fs.label AS species_label
+    `SELECT fcl.*, fs.code AS species_code, fs.label AS species_label,
+            fc.code AS category_code, fc.label AS category_label
      FROM fish_control_lines fcl
      INNER JOIN fish_species fs ON fs.id = fcl.species_id
+     INNER JOIN fish_categories fc ON fc.id = fcl.category_id
      WHERE fcl.fish_control_event_id = ?
      ORDER BY fcl.id ASC`,
     [id]
@@ -313,12 +437,13 @@ export async function createFishControlEvent(payload) {
     for (const line of payload.lines) {
       await connection.query(
         `INSERT INTO fish_control_lines (
-          fish_control_event_id, species_id, sample_count, sample_weight_total_kg,
+          fish_control_event_id, species_id, category_id, sample_count, sample_weight_total_kg,
           sample_weight_avg_kg, estimated_count_total, estimated_weight_total_kg, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           headerResult.insertId,
           line.species_id,
+          line.category_id,
           line.sample_count,
           line.sample_weight_total_kg,
           line.sample_weight_avg_kg,
@@ -332,29 +457,17 @@ export async function createFishControlEvent(payload) {
         ? line.estimated_weight_total_kg / line.estimated_count_total
         : 0;
 
-      await connection.query(
-        `INSERT INTO fish_stock_current (
-          water_object_id, species_id, count_total, weight_avg_kg, weight_total_kg,
-          last_refresh_type, last_refresh_date, notes
-        ) VALUES (?, ?, ?, ?, ?, 'control', ?, ?)
-        ON DUPLICATE KEY UPDATE
-          count_total = VALUES(count_total),
-          weight_avg_kg = VALUES(weight_avg_kg),
-          weight_total_kg = VALUES(weight_total_kg),
-          last_refresh_type = 'control',
-          last_refresh_date = VALUES(last_refresh_date),
-          notes = VALUES(notes),
-          updated_at = CURRENT_TIMESTAMP`,
-        [
-          payload.water_object_id,
-          line.species_id,
-          line.estimated_count_total,
-          weightAvg,
-          line.estimated_weight_total_kg,
-          payload.control_date,
-          line.notes
-        ]
-      );
+      await upsertCurrentStockRow(connection, {
+        water_object_id: payload.water_object_id,
+        species_id: line.species_id,
+        category_id: line.category_id,
+        count_total: line.estimated_count_total,
+        weight_avg_kg: weightAvg,
+        weight_total_kg: line.estimated_weight_total_kg,
+        last_refresh_type: 'control',
+        last_refresh_date: payload.control_date,
+        notes: line.notes
+      });
     }
 
     await connection.commit();
@@ -378,12 +491,14 @@ export async function listFishStockCurrent(waterObjectId) {
   }
 
   const [rows] = await db.query(
-    `SELECT fsc.*, wo.code AS water_object_code, fs.code AS species_code, fs.label AS species_label
+    `SELECT fsc.*, wo.code AS water_object_code, fs.code AS species_code, fs.label AS species_label,
+            fc.code AS category_code, fc.label AS category_label
      FROM fish_stock_current fsc
      INNER JOIN water_objects wo ON wo.id = fsc.water_object_id
      INNER JOIN fish_species fs ON fs.id = fsc.species_id
+     INNER JOIN fish_categories fc ON fc.id = fsc.category_id
      ${whereSql}
-     ORDER BY wo.code ASC, fs.label ASC`,
+     ORDER BY wo.code ASC, fs.label ASC, fc.sort_order ASC, fc.label ASC`,
     params
   );
 
@@ -395,40 +510,28 @@ export async function listFishStockAggregate() {
   const [rows] = await db.query(
     `SELECT
        wo.code AS water_object_code,
-       latest_entry_category.category_name AS category_name,
+       fc.code AS category_code,
+       fc.label AS category_label,
        fs.code AS species_code,
        fs.label AS species_label,
-       SUM(fsc.count_total) AS count_total,
-       SUM(fsc.weight_total_kg) AS weight_total_kg,
+       fsc.count_total AS count_total,
+       fsc.weight_total_kg AS weight_total_kg,
        CASE
-         WHEN SUM(fsc.count_total) > 0 THEN SUM(fsc.weight_total_kg) / SUM(fsc.count_total)
+         WHEN fsc.count_total > 0 THEN fsc.weight_total_kg / fsc.count_total
          ELSE 0
        END AS weight_avg_kg
      FROM fish_stock_current fsc
      INNER JOIN water_objects wo ON wo.id = fsc.water_object_id
      INNER JOIN fish_species fs ON fs.id = fsc.species_id
-     LEFT JOIN (
-       SELECT
-         fee.water_object_id,
-         fee.species_id,
-         SUBSTRING_INDEX(
-           GROUP_CONCAT(fc.label ORDER BY fee.event_date DESC, fee.id DESC SEPARATOR '||'),
-           '||',
-           1
-         ) AS category_name
-       FROM fish_entry_events fee
-       INNER JOIN fish_categories fc ON fc.id = fee.category_id
-       GROUP BY fee.water_object_id, fee.species_id
-     ) latest_entry_category
-       ON latest_entry_category.water_object_id = fsc.water_object_id
-      AND latest_entry_category.species_id = fsc.species_id
-     GROUP BY wo.code, latest_entry_category.category_name, fs.code, fs.label
-     ORDER BY wo.code ASC, fs.code ASC`
+     INNER JOIN fish_categories fc ON fc.id = fsc.category_id
+     ORDER BY wo.code ASC, fs.code ASC, fc.sort_order ASC, fc.code ASC`
   );
 
   return rows.map((row) => ({
     water_object_code: row.water_object_code,
-    category_name: row.category_name,
+    category_id: Number(row.category_id),
+    category_code: row.category_code,
+    category_label: row.category_label,
     species_code: row.species_code,
     species_name: resolveSpeciesName(row.species_code, row.species_label),
     count_total: Number(row.count_total),

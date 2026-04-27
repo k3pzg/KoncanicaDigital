@@ -4,11 +4,14 @@ import {
   addFishControlEvent,
   addFishEntryEvent,
   addFishEntryEvents,
+  addFishExitEvent,
   getFishCategories,
   getFishControlEventById,
   getFishControlEvents,
   getFishEntryEventById,
   getFishEntryEvents,
+  getFishExitEventById,
+  getFishExitEvents,
   getFishSpecies,
   getFishStockAggregate,
   getFishStock
@@ -85,6 +88,38 @@ fishRouter.post('/api/fish/entry-events', async (request, response) => {
 fishRouter.get('/fish-control-events', async (_, response) => {
   const items = await getFishControlEvents();
   return response.status(200).json({ items });
+});
+
+fishRouter.get('/fish-exit-events', async (_, response) => {
+  const items = await getFishExitEvents();
+  return response.status(200).json({ items });
+});
+
+fishRouter.get('/fish-exit-events/:id', async (request, response) => {
+  const item = await getFishExitEventById(Number(request.params.id));
+  if (!item) {
+    return response.status(404).json({ message: 'Not found' });
+  }
+
+  return response.status(200).json({ item });
+});
+
+fishRouter.post('/fish-exit-events', async (request, response) => {
+  try {
+    const item = await addFishExitEvent(request.body ?? {});
+    return response.status(201).json({ item });
+  } catch (error) {
+    return response.status(400).json({ message: error.message });
+  }
+});
+
+fishRouter.post('/api/fish/exit-events', async (request, response) => {
+  try {
+    const item = await addFishExitEvent(request.body ?? {});
+    return response.status(201).json({ item });
+  } catch (error) {
+    return response.status(400).json({ message: error.message });
+  }
 });
 
 fishRouter.get('/fish-control-events/:id', async (request, response) => {

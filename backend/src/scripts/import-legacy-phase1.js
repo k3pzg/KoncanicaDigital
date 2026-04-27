@@ -492,8 +492,8 @@ async function hasMatchingFishEntryEvent(connection, payload) {
 
 async function upsertStockFromEntry(connection, payload) {
   const [rows] = await connection.query(
-    'SELECT * FROM fish_stock_current WHERE water_object_id = ? AND species_id = ? LIMIT 1',
-    [payload.water_object_id, payload.species_id]
+    'SELECT * FROM fish_stock_current WHERE water_object_id = ? AND species_id = ? AND category_id = ? LIMIT 1',
+    [payload.water_object_id, payload.species_id, payload.category_id]
   );
 
   if (!rows[0]) {
@@ -501,12 +501,13 @@ async function upsertStockFromEntry(connection, payload) {
 
     await connection.query(
       `INSERT INTO fish_stock_current (
-        water_object_id, species_id, count_total, weight_avg_kg, weight_total_kg,
+        water_object_id, species_id, category_id, count_total, weight_avg_kg, weight_total_kg,
         last_refresh_type, last_refresh_date, notes
-      ) VALUES (?, ?, ?, ?, ?, 'entry', ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, 'entry', ?, ?)`,
       [
         payload.water_object_id,
         payload.species_id,
+        payload.category_id,
         payload.count_total,
         weightAvg,
         payload.weight_total_kg,
