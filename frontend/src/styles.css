@@ -200,3 +200,180 @@ button { cursor: pointer; }
   gap: 0.3rem;
   font-size: 0.9rem;
 }
+
+.app-home-card {
+  width: min(1080px, 100%);
+}
+
+.app-home-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.app-home-header h2,
+.map-dashboard-header h2 {
+  margin-top: 0;
+}
+
+.app-home-lead {
+  color: #475569;
+}
+
+.app-home-nav-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.app-home-nav-card {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 112px;
+  padding: 0.9rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.75rem;
+  color: #0f172a;
+  text-decoration: none;
+  background: #f8fafc;
+}
+
+.app-home-nav-card:hover,
+.app-home-nav-card:focus {
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px rgb(37 99 235 / 0.12);
+}
+
+.app-home-nav-card.primary {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+.app-home-nav-card span {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.app-home-nav-card small {
+  color: #475569;
+  line-height: 1.35;
+}
+
+.water-list li {
+  gap: 0.75rem;
+}
+
+.water-list-details {
+  display: grid;
+  gap: 0.18rem;
+  font-size: 0.9rem;
+}
+
+.water-list-details strong {
+  font-size: 1rem;
+}
+
+.map-dashboard {
+  display: grid;
+  width: min(1440px, 100%);
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  align-items: start;
+}
+
+.map-dashboard-header {
+  grid-column: 1 / -1;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.dashboard-actions a {
+  display: inline-flex;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.map-dashboard-map-card,
+.map-dashboard-side-panel {
+  width: 100%;
+}
+
+.map-dashboard-map {
+  width: 100%;
+  min-height: 620px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.map-dashboard-note {
+  margin-bottom: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.object-detail-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+}
+
+.object-detail-list div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.object-detail-list dt {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.object-detail-list dd {
+  margin: 0;
+}
+
+.compact-stock-summary {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 980px) {
+  .water-objects-grid,
+  .fish-grid,
+  .map-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .map-dashboard-header,
+  .app-home-header {
+    display: grid;
+  }
+
+  .dashboard-actions {
+    justify-content: flex-start;
+  }
+
+  .map-dashboard-map {
+    min-height: 420px;
+  }
+}

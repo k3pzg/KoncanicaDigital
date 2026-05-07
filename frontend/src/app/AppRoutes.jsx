@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
 import { AppHomePage } from '../features/app/pages/AppHomePage';
+import { MapDashboardPage } from '../features/app/pages/MapDashboardPage';
 import { WaterObjectsPage } from '../features/water-objects/pages/WaterObjectsPage';
 import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
 import { FishStockPage } from '../features/fish/pages/FishStockPage';
@@ -13,9 +14,21 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route
         path="/app"
+        element={<Navigate to="/app/map" replace />}
+      />
+      <Route
+        path="/app/home"
         element={
           <ProtectedRoute>
             <AppHomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/map"
+        element={
+          <ProtectedRoute>
+            <MapDashboardPage />
           </ProtectedRoute>
         }
       />

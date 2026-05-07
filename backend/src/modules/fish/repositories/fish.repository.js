@@ -509,9 +509,12 @@ export async function listFishStockAggregate() {
   const db = getDatabasePool();
   const [rows] = await db.query(
     `SELECT
+       wo.id AS water_object_id,
        wo.code AS water_object_code,
+       fc.id AS category_id,
        fc.code AS category_code,
        fc.label AS category_label,
+       fs.id AS species_id,
        fs.code AS species_code,
        fs.label AS species_label,
        fsc.count_total AS count_total,
@@ -528,10 +531,12 @@ export async function listFishStockAggregate() {
   );
 
   return rows.map((row) => ({
+    water_object_id: Number(row.water_object_id),
     water_object_code: row.water_object_code,
     category_id: Number(row.category_id),
     category_code: row.category_code,
     category_label: row.category_label,
+    species_id: Number(row.species_id),
     species_code: row.species_code,
     species_name: resolveSpeciesName(row.species_code, row.species_label),
     count_total: Number(row.count_total),
