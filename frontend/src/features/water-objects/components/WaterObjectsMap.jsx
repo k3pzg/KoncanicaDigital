@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-function parseGeoJsonValue(value) {
+export function parseGeoJsonValue(value) {
   if (!value) {
     return null;
   }
@@ -22,7 +22,7 @@ function parseGeoJsonValue(value) {
   return null;
 }
 
-function normalizeToFeatureOrCollection(geojson) {
+export function normalizeToFeatureOrCollection(geojson) {
   if (!geojson || typeof geojson !== 'object') {
     return null;
   }

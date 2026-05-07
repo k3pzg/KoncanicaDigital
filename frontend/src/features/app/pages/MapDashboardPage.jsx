@@ -4,46 +4,15 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../../auth/state/AuthContext';
 import { listFishStockAggregateRequest } from '../../fish/api/fishApi';
+import {
+  normalizeToFeatureOrCollection,
+  parseGeoJsonValue
+} from '../../water-objects/components/WaterObjectsMap';
 import { listWaterObjectsRequest } from '../../water-objects/api/waterObjectsApi';
 
 const SATELLITE_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-const DEFAULT_CENTER = [45.45, 16.85];
-
-function parseGeoJsonValue(value) {
-  if (!value) {
-    return null;
-  }
-
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return null;
-    }
-  }
-
-  return typeof value === 'object' ? value : null;
-}
-
-function normalizeToFeatureOrCollection(geojson) {
-  if (!geojson || typeof geojson !== 'object') {
-    return null;
-  }
-
-  if (geojson.type === 'Feature' || geojson.type === 'FeatureCollection') {
-    return geojson;
-  }
-
-  if (typeof geojson.type === 'string' && geojson.coordinates) {
-    return {
-      type: 'Feature',
-      properties: {},
-      geometry: geojson
-    };
-  }
-
-  return null;
-}
+const DEFAULT_CENTER = [45.637, 17.165];
+const DEFAULT_ZOOM = 13;
 
 function parseCentroidWkt(value) {
   if (!value || typeof value !== 'string') {
@@ -132,14 +101,22 @@ function formatVolume(value) {
   return `${formatDecimal(value, 2)} m³`;
 }
 
+function getStockSpecies(row) {
+  return row.species_name ?? row.species_label ?? row.species_code ?? '-';
+}
+
+function getStockCategory(row) {
+  return row.category_label ?? row.category_name ?? row.category_code ?? 'Bez kategorije';
+}
+
 function buildStockGroups(rows) {
   const groups = rows.reduce((acc, row) => {
-    const key = `${row.species_code ?? row.species_label ?? 'unknown'}-${row.category_code ?? row.category_label ?? 'unknown'}`;
+    const key = `${row.species_id ?? row.species_code ?? row.species_label ?? 'unknown'}-${row.category_id ?? row.category_code ?? row.category_label ?? 'unknown'}`;
 
     if (!acc[key]) {
       acc[key] = {
-        species: row.species_name ?? row.species_label ?? row.species_code ?? '-',
-        category: row.category_label ?? row.category_name ?? row.category_code ?? 'Bez kategorije',
+        species: getStockSpecies(row),
+        category: getStockCategory(row),
         count_total: 0,
         weight_total_kg: 0
       };
@@ -162,7 +139,7 @@ function buildStockGroups(rows) {
 }
 
 function getObjectLabel(item) {
-  return item.name ? `${item.code} — ${item.name}` : item.code;
+  return item?.name ? `${item.code} — ${item.name}` : item?.code ?? '-';
 }
 
 function getWaterLevelStatus(note) {
@@ -183,6 +160,23 @@ function getWaterLevelStatus(note) {
   return { label: 'Bez statusa', className: 'water-level-status neutral' };
 }
 
+function getStockKeys(row) {
+  return [
+    row.water_object_id === null || row.water_object_id === undefined ? null : `id:${Number(row.water_object_id)}`,
+    row.water_object_code ? `code:${String(row.water_object_code)}` : null,
+    row.water_object_label ? `code:${String(row.water_object_label)}` : null
+  ].filter(Boolean);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 export function MapDashboardPage() {
   const { token } = useAuth();
   const mapContainerRef = useRef(null);
@@ -191,35 +185,80 @@ export function MapDashboardPage() {
   const [waterObjects, setWaterObjects] = useState([]);
   const [stockRows, setStockRows] = useState([]);
   const [selectedObjectId, setSelectedObjectId] = useState(null);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [mapError, setMapError] = useState('');
+  const [stockError, setStockError] = useState('');
+  const [isLoadingWaterObjects, setIsLoadingWaterObjects] = useState(true);
+  const [isLoadingStock, setIsLoadingStock] = useState(true);
 
   useEffect(() => {
-    async function loadDashboardData() {
-      setIsLoading(true);
-      setError('');
+    let isMounted = true;
+
+    async function loadWaterObjects() {
+      setIsLoadingWaterObjects(true);
+      setMapError('');
 
       try {
-        const [waterObjectsResponse, stockResponse] = await Promise.all([
-          listWaterObjectsRequest(token),
-          listFishStockAggregateRequest(token)
-        ]);
+        const waterObjectsResponse = await listWaterObjectsRequest(token);
+        if (!isMounted) {
+          return;
+        }
 
         const sortedObjects = [...(waterObjectsResponse.items ?? [])].sort((left, right) => (
           String(left.code ?? '').localeCompare(String(right.code ?? ''), 'hr-HR', { numeric: true })
         ));
 
         setWaterObjects(sortedObjects);
-        setStockRows(Array.isArray(stockResponse) ? stockResponse : []);
-        setSelectedObjectId((currentId) => currentId ?? sortedObjects[0]?.id ?? null);
+        setSelectedObjectId((currentId) => (
+          currentId && sortedObjects.some((item) => item.id === currentId)
+            ? currentId
+            : sortedObjects[0]?.id ?? null
+        ));
       } catch (loadError) {
-        setError(loadError.message || 'Neuspješno učitavanje karte ribnjaka.');
+        if (!isMounted) {
+          return;
+        }
+
+        setWaterObjects([]);
+        setSelectedObjectId(null);
+        setMapError(loadError.message || 'Neuspješno učitavanje vodnih objekata.');
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoadingWaterObjects(false);
+        }
       }
     }
 
-    loadDashboardData();
+    async function loadFishStock() {
+      setIsLoadingStock(true);
+      setStockError('');
+
+      try {
+        const stockResponse = await listFishStockAggregateRequest(token);
+        if (!isMounted) {
+          return;
+        }
+
+        setStockRows(Array.isArray(stockResponse) ? stockResponse : []);
+      } catch (loadError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setStockRows([]);
+        setStockError(loadError.message || 'Neuspješno učitavanje ribljeg fonda.');
+      } finally {
+        if (isMounted) {
+          setIsLoadingStock(false);
+        }
+      }
+    }
+
+    loadWaterObjects();
+    loadFishStock();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   useEffect(() => {
@@ -229,7 +268,7 @@ export function MapDashboardPage() {
 
     const map = L.map(mapContainerRef.current, {
       center: DEFAULT_CENTER,
-      zoom: 13
+      zoom: DEFAULT_ZOOM
     });
 
     L.tileLayer(SATELLITE_TILE_URL, {
@@ -247,18 +286,16 @@ export function MapDashboardPage() {
     };
   }, []);
 
-  const stockByWaterObjectId = useMemo(() => {
+  const stockByWaterObjectKey = useMemo(() => {
     return stockRows.reduce((acc, row) => {
-      const id = Number(row.water_object_id);
-      if (!Number.isFinite(id)) {
-        return acc;
-      }
+      getStockKeys(row).forEach((key) => {
+        if (!acc[key]) {
+          acc[key] = [];
+        }
 
-      if (!acc[id]) {
-        acc[id] = [];
-      }
+        acc[key].push(row);
+      });
 
-      acc[id].push(row);
       return acc;
     }, {});
   }, [stockRows]);
@@ -278,10 +315,14 @@ export function MapDashboardPage() {
     });
   }, [waterObjects]);
 
-  const drawableObjects = useMemo(() => mapObjects.filter((entry) => entry.geometryKind !== 'missing'), [mapObjects]);
+  const polygonObjects = useMemo(() => mapObjects.filter((entry) => entry.geometryKind === 'polygon'), [mapObjects]);
+  const markerObjects = useMemo(() => mapObjects.filter((entry) => entry.geometryKind === 'centroid'), [mapObjects]);
+  const drawableObjects = useMemo(() => [...polygonObjects, ...markerObjects], [polygonObjects, markerObjects]);
   const skippedCount = mapObjects.length - drawableObjects.length;
   const selectedObject = waterObjects.find((item) => item.id === selectedObjectId) ?? waterObjects[0] ?? null;
-  const selectedStockRows = selectedObject ? stockByWaterObjectId[selectedObject.id] ?? [] : [];
+  const selectedStockRows = selectedObject
+    ? stockByWaterObjectKey[`id:${Number(selectedObject.id)}`] ?? stockByWaterObjectKey[`code:${String(selectedObject.code)}`] ?? []
+    : [];
   const selectedWaterLevel = selectedObject?.latest_water_level_measurement ?? null;
   const selectedWaterLevelStatus = getWaterLevelStatus(selectedWaterLevel?.note);
   const selectedStockGroups = useMemo(() => buildStockGroups(selectedStockRows), [selectedStockRows]);
@@ -293,6 +334,10 @@ export function MapDashboardPage() {
     },
     { count_total: 0, weight_total_kg: 0 }
   ), [selectedStockRows]);
+  const waterLevelRowsAvailable = useMemo(
+    () => waterObjects.filter((item) => item.latest_water_level_measurement).length,
+    [waterObjects]
+  );
 
   useEffect(() => {
     const map = mapRef.current;
@@ -303,7 +348,8 @@ export function MapDashboardPage() {
     }
 
     layerGroup.clearLayers();
-    const bounds = L.latLngBounds([]);
+    const polygonBounds = L.latLngBounds([]);
+    const allBounds = L.latLngBounds([]);
 
     drawableObjects.forEach(({ item, polygon, centroid, geometryKind }) => {
       const isSelected = item.id === selectedObjectId;
@@ -321,7 +367,8 @@ export function MapDashboardPage() {
 
         const layerBounds = layer.getBounds();
         if (layerBounds.isValid()) {
-          bounds.extend(layerBounds);
+          polygonBounds.extend(layerBounds);
+          allBounds.extend(layerBounds);
         }
       } else {
         layer = L.circleMarker(centroid, {
@@ -332,16 +379,20 @@ export function MapDashboardPage() {
           weight: 2
         });
 
-        bounds.extend(centroid);
+        allBounds.extend(centroid);
       }
 
       layer.on('click', () => setSelectedObjectId(item.id));
-      layer.bindPopup(`<strong>${getObjectLabel(item)}</strong><br>${item.object_type ?? '-'}`);
+      layer.bindPopup(`<strong>${escapeHtml(getObjectLabel(item))}</strong><br>${escapeHtml(item.object_type ?? '-')}`);
       layer.addTo(layerGroup);
     });
 
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+    if (polygonBounds.isValid()) {
+      map.fitBounds(polygonBounds, { padding: [30, 30], maxZoom: 16 });
+    } else if (allBounds.isValid()) {
+      map.fitBounds(allBounds, { padding: [30, 30], maxZoom: 16 });
+    } else {
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
     }
   }, [drawableObjects, selectedObjectId]);
 
@@ -350,7 +401,7 @@ export function MapDashboardPage() {
       <section className="card map-dashboard-header">
         <div>
           <h2>Karta ribnjaka</h2>
-          <p>Operativni pregled vodnih objekata, geometrije i trenutnog stanja ribljeg fonda.</p>
+          <p>Operativni pregled vodnih objekata, geometrije, vodostaja i trenutnog stanja ribljeg fonda.</p>
         </div>
         <nav className="dashboard-actions" aria-label="Brze akcije">
           <Link to="/app/home">Početna</Link>
@@ -362,12 +413,17 @@ export function MapDashboardPage() {
       </section>
 
       <section className="card map-dashboard-map-card">
-        {error ? <p className="error-text">{error}</p> : null}
-        {isLoading ? <p>Učitavanje karte...</p> : null}
+        {mapError ? <p className="error-text">{mapError}</p> : null}
+        {isLoadingWaterObjects ? <p>Učitavanje vodnih objekata...</p> : null}
         <div ref={mapContainerRef} className="map-dashboard-map" role="img" aria-label="Satelitska karta vodnih objekata" />
-        <p className="map-dashboard-note">
-          Prikazano: {drawableObjects.length} · Preskočeno bez geometrije: {skippedCount}
-        </p>
+        <dl className="map-dashboard-diagnostics" aria-label="Dijagnostika učitavanja karte">
+          <div><dt>Vodni objekti</dt><dd>{formatInteger(waterObjects.length)}</dd></div>
+          <div><dt>Poligoni</dt><dd>{formatInteger(polygonObjects.length)}</dd></div>
+          <div><dt>Markeri</dt><dd>{formatInteger(markerObjects.length)}</dd></div>
+          <div><dt>Bez geometrije</dt><dd>{formatInteger(skippedCount)}</dd></div>
+          <div><dt>Redovi fonda</dt><dd>{formatInteger(stockRows.length)}</dd></div>
+          <div><dt>Redovi vodostaja</dt><dd>{formatInteger(waterLevelRowsAvailable)}</dd></div>
+        </dl>
       </section>
 
       <aside className="card map-dashboard-side-panel">
@@ -396,48 +452,58 @@ export function MapDashboardPage() {
                   <div><dt>Puni vodostaj</dt><dd>{formatCentimeters(selectedWaterLevel.water_level_full_cm)}</dd></div>
                   <div><dt>Trenutni vodostaj</dt><dd>{formatCentimeters(selectedWaterLevel.water_level_current_cm)}</dd></div>
                   <div><dt>Nedostaje</dt><dd>{formatCentimeters(selectedWaterLevel.water_level_missing_cm)}</dd></div>
-                  <div><dt>Napomena</dt><dd>{selectedWaterLevel.note || '-'}</dd></div>
+                  <div><dt>Napomena/status</dt><dd>{selectedWaterLevel.note || '-'}</dd></div>
                 </dl>
               ) : null}
             </section>
 
-            <section className="fish-stock-summary compact-stock-summary">
-              <article className="fish-stock-summary-card">
-                <h4>Ukupno riba</h4>
-                <p>{formatInteger(selectedTotals.count_total)}</p>
-              </article>
-              <article className="fish-stock-summary-card">
-                <h4>Ukupna masa</h4>
-                <p>{formatDecimal(selectedTotals.weight_total_kg, 2)} kg</p>
-              </article>
-            </section>
-
-            <h4>Stanje po vrsti i kategoriji</h4>
-            {selectedStockGroups.length === 0 ? <p>Nema evidentiranog fonda za ovaj objekt.</p> : null}
-            {selectedStockGroups.length > 0 ? (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Vrsta</th>
-                      <th>Kategorija</th>
-                      <th className="numeric-cell">Kom</th>
-                      <th className="numeric-cell">Kg</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedStockGroups.map((row) => (
-                      <tr key={`${row.species}-${row.category}`}>
-                        <td>{row.species}</td>
-                        <td>{row.category}</td>
-                        <td className="numeric-cell">{formatInteger(row.count_total)}</td>
-                        <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <section className="fish-stock-panel">
+              <div className="water-level-panel-heading">
+                <h4>Riblji fond</h4>
+                {isLoadingStock ? <span className="water-level-status neutral">Učitavanje</span> : null}
               </div>
-            ) : null}
+              {stockError ? <p className="error-text">{stockError}</p> : null}
+
+              <section className="fish-stock-summary compact-stock-summary">
+                <article className="fish-stock-summary-card">
+                  <h4>Ukupno riba</h4>
+                  <p>{formatInteger(selectedTotals.count_total)}</p>
+                </article>
+                <article className="fish-stock-summary-card">
+                  <h4>Ukupna masa</h4>
+                  <p>{formatDecimal(selectedTotals.weight_total_kg, 2)} kg</p>
+                </article>
+              </section>
+
+              <h4>Stanje po vrsti i kategoriji</h4>
+              {!stockError && selectedStockGroups.length === 0 ? <p>Nema evidentiranog fonda za ovaj objekt.</p> : null}
+              {selectedStockGroups.length > 0 ? (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Vrsta</th>
+                        <th>Kategorija</th>
+                        <th className="numeric-cell">Kom</th>
+                        <th className="numeric-cell">Kg</th>
+                        <th className="numeric-cell">Prosjek kg</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedStockGroups.map((row) => (
+                        <tr key={`${row.species}-${row.category}`}>
+                          <td>{row.species}</td>
+                          <td>{row.category}</td>
+                          <td className="numeric-cell">{formatInteger(row.count_total)}</td>
+                          <td className="numeric-cell">{formatDecimal(row.weight_total_kg, 2)}</td>
+                          <td className="numeric-cell">{formatDecimal(row.weight_avg_kg, 3)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </section>
           </>
         ) : null}
       </aside>
