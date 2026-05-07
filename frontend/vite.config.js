@@ -6,6 +6,8 @@ const BACKEND_URL = process.env.VITE_DEV_API_PROXY_TARGET ?? 'http://localhost:3
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
+    allowedHosts: ['koncanicadigital.up.railway.app'],
     port: 5173,
     proxy: {
       '/auth': BACKEND_URL,
@@ -19,5 +21,9 @@ export default defineConfig({
       '/fish-stock-current': BACKEND_URL,
       '/api': BACKEND_URL
     }
+  },
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: ['koncanicadigital.up.railway.app']
   }
 });
