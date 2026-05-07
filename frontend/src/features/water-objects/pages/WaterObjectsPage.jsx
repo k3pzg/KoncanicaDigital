@@ -10,6 +10,29 @@ import { WaterObjectsMap } from '../components/WaterObjectsMap';
 
 const objectTypes = ['ribnjak', 'bazen', 'kanal', 'zimovnik', 'rastiliste', 'maticnjak'];
 
+function formatDecimal(value, digits = 2) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return '-';
+  }
+
+  return parsed.toLocaleString('hr-HR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  });
+}
+
+function formatArea(value) {
+  return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} m²`;
+}
+
+function formatDepth(value) {
+  return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} m`;
+}
+
+function formatVolume(value) {
+  return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} m³`;
+}
 
 function normalizePolygonGeojsonForTextarea(value) {
   if (!value) {
@@ -49,7 +72,10 @@ export function WaterObjectsPage() {
 
   async function loadItems() {
     const result = await listWaterObjectsRequest(token);
-    setItems(result.items ?? []);
+    const sortedItems = [...(result.items ?? [])].sort((left, right) => (
+      String(left.code ?? '').localeCompare(String(right.code ?? ''), 'hr-HR', { numeric: true })
+    ));
+    setItems(sortedItems);
   }
 
   useEffect(() => {
@@ -187,7 +213,15 @@ export function WaterObjectsPage() {
         <ul className="water-list">
           {items.map((item) => (
             <li key={item.id}>
-              <strong>{item.code}</strong> ({item.object_type})
+              <div className="water-list-details">
+                <strong>{item.code}</strong>
+                <span>Tip: {item.object_type ?? '-'}</span>
+                <span>Ukupna površina: {formatArea(item.area_total_m2)}</span>
+                <span>Produktivna površina: {formatArea(item.area_productive_m2)}</span>
+                <span>Maks. dubina: {formatDepth(item.max_depth_m)}</span>
+                <span>Maks. volumen: {formatVolume(item.max_volume_m3)}</span>
+                <span>Napomena: {item.notes || '-'}</span>
+              </div>
               <div className="row-actions">
                 <button type="button" onClick={() => startEdit(item)}>
                   Uredi
