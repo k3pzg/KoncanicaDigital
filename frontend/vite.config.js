@@ -2,6 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const BACKEND_URL = process.env.VITE_DEV_API_PROXY_TARGET ?? 'http://localhost:3001';
+const RAILWAY_HOST = 'koncanicadigital.up.railway.app';
+const ALLOWED_HOSTS = Array.from(
+  new Set(
+    [RAILWAY_HOST, ...(process.env.VITE_ALLOWED_HOSTS ?? '').split(',')]
+      .map((host) => host.trim())
+      .filter(Boolean)
+  )
+);
 
 export default defineConfig({
   plugins: [react()],
