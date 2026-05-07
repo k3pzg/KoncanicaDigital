@@ -12,9 +12,18 @@ export function getDatabasePool() {
       port: env.mysqlPort,
       user: env.mysqlUser,
       password: env.mysqlPassword,
-      database: env.mysqlDatabase
+      database: env.mysqlDatabase,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
     });
   }
 
   return pool;
+}
+
+export async function testDatabaseConnection() {
+  const pool = getDatabasePool();
+  const connection = await pool.getConnection();
+  connection.release();
 }
