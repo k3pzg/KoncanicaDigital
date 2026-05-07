@@ -55,8 +55,14 @@ export function listFishStockCurrentRequest(token, waterObjectId) {
   return apiRequest(`/fish-stock-current${suffix}`, { headers: authHeaders(token) });
 }
 
-export function listFishStockAggregateRequest(token) {
-  return apiRequest('/api/fish/stock', { headers: authHeaders(token) });
+export async function listFishStockAggregateRequest(token) {
+  try {
+    const response = await apiRequest('/api/fish/stock', { headers: authHeaders(token) });
+    return Array.isArray(response) ? response : response.items ?? [];
+  } catch {
+    const fallbackResponse = await listFishStockCurrentRequest(token);
+    return Array.isArray(fallbackResponse) ? fallbackResponse : fallbackResponse.items ?? [];
+  }
 }
 
 

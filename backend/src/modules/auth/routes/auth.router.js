@@ -11,12 +11,16 @@ authRouter.post('/login', async (request, response) => {
     return response.status(400).json({ message: 'username and password are required' });
   }
 
-  const result = await login({ username, password });
-  if (!result) {
-    return response.status(401).json({ message: 'Invalid credentials' });
-  }
+  try {
+    const result = await login({ username, password });
+    if (!result) {
+      return response.status(401).json({ message: 'Invalid credentials' });
+    }
 
-  return response.status(200).json(result);
+    return response.status(200).json(result);
+  } catch {
+    return response.status(503).json({ message: 'Database unavailable' });
+  }
 });
 
 authRouter.get('/me', requireAuth, async (request, response) => {

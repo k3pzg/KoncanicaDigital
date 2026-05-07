@@ -8,7 +8,7 @@ export function getEnv() {
     mysqlHost: process.env.MYSQL_HOST ?? 'localhost',
     mysqlPort: Number(process.env.MYSQL_PORT ?? 3306),
     mysqlUser: process.env.MYSQL_USER ?? 'root',
-    mysqlPassword: process.env.MYSQL_PASSWORD ?? '',
+    mysqlPassword: process.env.MYSQL_PASSWORD ?? 'root',
     mysqlDatabase: process.env.MYSQL_DATABASE ?? 'koncanica_digital',
     sessionTtlHours: Number(process.env.SESSION_TTL_HOURS ?? 24)
   };

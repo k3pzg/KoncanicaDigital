@@ -466,3 +466,72 @@ button { cursor: pointer; }
   margin-top: 0.25rem;
   min-width: 12rem;
 }
+
+.map-mode-toolbar {
+  display: inline-flex;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+}
+
+.map-mode-toolbar button {
+  min-width: 5.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.map-mode-toolbar button.active,
+.map-mode-toolbar button[aria-pressed='true'] {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgb(37 99 235 / 0.22);
+}
+
+.map-legend {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.map-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.map-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.map-legend span {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgb(15 23 42 / 0.25);
+  border-radius: 0.25rem;
+}
+
+.water-level-status.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.fish-norm-list {
+  margin-top: 0.25rem;
+}
