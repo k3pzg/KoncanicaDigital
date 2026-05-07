@@ -14,6 +14,8 @@ const ALLOWED_HOSTS = Array.from(
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
+    allowedHosts: ['koncanicadigital.up.railway.app'],
     port: 5173,
     proxy: {
       '/auth': BACKEND_URL,
@@ -29,6 +31,7 @@ export default defineConfig({
     }
   },
   preview: {
-    allowedHosts: ALLOWED_HOSTS
+    host: '0.0.0.0',
+    allowedHosts: ['koncanicadigital.up.railway.app']
   }
 });
