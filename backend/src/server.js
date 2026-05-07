@@ -5,8 +5,8 @@ async function bootstrap() {
   const env = getEnv();
   const app = createApp();
 
-  app.listen(env.port, () => {
-    console.log(`Backend shell listening on http://localhost:${env.port}`);
+  app.listen(env.port, '0.0.0.0', () => {
+    console.log(`Backend listening on 0.0.0.0:${env.port}`);
   });
 }
 
