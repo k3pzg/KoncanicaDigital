@@ -377,3 +377,65 @@ button { cursor: pointer; }
     min-height: 420px;
   }
 }
+
+.water-objects-list-card {
+  grid-column: 1 / -1;
+}
+
+.water-level-panel {
+  padding: 0.85rem;
+  margin: 0 0 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+}
+
+.water-level-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.water-level-panel-heading h4 {
+  margin: 0;
+}
+
+.water-level-status {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.water-level-status.critical {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.water-level-status.warning {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.water-level-status.info {
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.water-level-status.neutral {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.water-level-note-text {
+  display: block;
+  margin-top: 0.25rem;
+  min-width: 12rem;
+}

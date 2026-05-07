@@ -99,6 +99,23 @@ function formatArea(value) {
   return `${formatDecimal(value, 2)} m²`;
 }
 
+function formatAreaHa(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  return `${formatDecimal(value, 2)} ha`;
+}
+
+function formatCentimeters(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return '-';
+  }
+
+  return `${parsed.toLocaleString('hr-HR', { maximumFractionDigits: 0 })} cm`;
+}
+
 function formatDepth(value) {
   if (value === null || value === undefined || value === '') {
     return '-';
@@ -146,6 +163,24 @@ function buildStockGroups(rows) {
 
 function getObjectLabel(item) {
   return item.name ? `${item.code} — ${item.name}` : item.code;
+}
+
+function getWaterLevelStatus(note) {
+  const normalized = String(note ?? '').toLowerCase();
+
+  if (normalized.includes('prazan')) {
+    return { label: 'Kritično', className: 'water-level-status critical' };
+  }
+
+  if (normalized.includes('potrebno') || normalized.includes('pražnjenje')) {
+    return { label: 'Upozorenje', className: 'water-level-status warning' };
+  }
+
+  if (normalized.includes('punjenje')) {
+    return { label: 'Info', className: 'water-level-status info' };
+  }
+
+  return { label: 'Bez statusa', className: 'water-level-status neutral' };
 }
 
 export function MapDashboardPage() {
@@ -247,6 +282,8 @@ export function MapDashboardPage() {
   const skippedCount = mapObjects.length - drawableObjects.length;
   const selectedObject = waterObjects.find((item) => item.id === selectedObjectId) ?? waterObjects[0] ?? null;
   const selectedStockRows = selectedObject ? stockByWaterObjectId[selectedObject.id] ?? [] : [];
+  const selectedWaterLevel = selectedObject?.latest_water_level_measurement ?? null;
+  const selectedWaterLevelStatus = getWaterLevelStatus(selectedWaterLevel?.note);
   const selectedStockGroups = useMemo(() => buildStockGroups(selectedStockRows), [selectedStockRows]);
   const selectedTotals = useMemo(() => selectedStockRows.reduce(
     (acc, row) => {
@@ -346,6 +383,23 @@ export function MapDashboardPage() {
               <div><dt>Maks. dubina</dt><dd>{formatDepth(selectedObject.max_depth_m)}</dd></div>
               <div><dt>Maks. volumen</dt><dd>{formatVolume(selectedObject.max_volume_m3 ?? selectedObject.water_volume_m3)}</dd></div>
             </dl>
+
+            <section className="water-level-panel">
+              <div className="water-level-panel-heading">
+                <h4>Trenutni vodostaj</h4>
+                <span className={selectedWaterLevelStatus.className}>{selectedWaterLevelStatus.label}</span>
+              </div>
+              {!selectedWaterLevel ? <p>Nema terenskog mjerenja vodostaja za ovaj objekt.</p> : null}
+              {selectedWaterLevel ? (
+                <dl className="object-detail-list">
+                  <div><dt>Površina</dt><dd>{formatAreaHa(selectedWaterLevel.area_ha)}</dd></div>
+                  <div><dt>Puni vodostaj</dt><dd>{formatCentimeters(selectedWaterLevel.water_level_full_cm)}</dd></div>
+                  <div><dt>Trenutni vodostaj</dt><dd>{formatCentimeters(selectedWaterLevel.water_level_current_cm)}</dd></div>
+                  <div><dt>Nedostaje</dt><dd>{formatCentimeters(selectedWaterLevel.water_level_missing_cm)}</dd></div>
+                  <div><dt>Napomena</dt><dd>{selectedWaterLevel.note || '-'}</dd></div>
+                </dl>
+              ) : null}
+            </section>
 
             <section className="fish-stock-summary compact-stock-summary">
               <article className="fish-stock-summary-card">

@@ -11,7 +11,9 @@
     "import:legacy:dry": "node src/scripts/import-legacy-phase1.js",
     "import:legacy:apply": "node src/scripts/import-legacy-phase1.js --apply",
     "cleanup:test-data:dry": "node src/scripts/cleanup-test-data.js",
-    "cleanup:test-data:apply": "node src/scripts/cleanup-test-data.js --apply"
+    "cleanup:test-data:apply": "node src/scripts/cleanup-test-data.js --apply",
+    "import:water-levels:dry": "node src/scripts/import-water-levels.js",
+    "import:water-levels:apply": "node src/scripts/import-water-levels.js --apply"
   },
   "dependencies": {
     "cors": "^2.8.5",
