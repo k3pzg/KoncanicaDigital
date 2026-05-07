@@ -15,7 +15,9 @@
     "db:seed": "npm run db:seed --workspace backend",
     "import:legacy:dry": "npm run import:legacy:dry --workspace backend",
     "import:legacy:apply": "npm run import:legacy:apply --workspace backend",
-    "build": "npm run build --workspace frontend && npm run build --workspace backend"
+    "build": "npm run build --workspace frontend && npm run build --workspace backend",
+    "cleanup:test-data:dry": "npm run cleanup:test-data:dry --workspace backend",
+    "cleanup:test-data:apply": "npm run cleanup:test-data:apply --workspace backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

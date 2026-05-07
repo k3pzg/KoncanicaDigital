@@ -9,7 +9,9 @@
     "db:migrate": "node src/scripts/migrate.js",
     "db:seed": "node src/scripts/seed.js",
     "import:legacy:dry": "node src/scripts/import-legacy-phase1.js",
-    "import:legacy:apply": "node src/scripts/import-legacy-phase1.js --apply"
+    "import:legacy:apply": "node src/scripts/import-legacy-phase1.js --apply",
+    "cleanup:test-data:dry": "node src/scripts/cleanup-test-data.js",
+    "cleanup:test-data:apply": "node src/scripts/cleanup-test-data.js --apply"
   },
   "dependencies": {
     "cors": "^2.8.5",
