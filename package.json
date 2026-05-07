@@ -17,7 +17,9 @@
     "import:legacy:apply": "npm run import:legacy:apply --workspace backend",
     "build": "npm run build --workspace frontend && npm run build --workspace backend",
     "cleanup:test-data:dry": "npm run cleanup:test-data:dry --workspace backend",
-    "cleanup:test-data:apply": "npm run cleanup:test-data:apply --workspace backend"
+    "cleanup:test-data:apply": "npm run cleanup:test-data:apply --workspace backend",
+    "import:water-levels:dry": "npm run import:water-levels:dry --workspace backend",
+    "import:water-levels:apply": "npm run import:water-levels:apply --workspace backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

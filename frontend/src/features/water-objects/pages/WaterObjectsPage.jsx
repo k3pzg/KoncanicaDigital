@@ -26,12 +26,43 @@ function formatArea(value) {
   return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} m²`;
 }
 
+function formatAreaHa(value) {
+  return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} ha`;
+}
+
+function formatCentimeters(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return '-';
+  }
+
+  return `${parsed.toLocaleString('hr-HR', { maximumFractionDigits: 0 })} cm`;
+}
+
 function formatDepth(value) {
   return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} m`;
 }
 
 function formatVolume(value) {
   return value === null || value === undefined || value === '' ? '-' : `${formatDecimal(value)} m³`;
+}
+
+function getWaterLevelStatus(note) {
+  const normalized = String(note ?? '').toLowerCase();
+
+  if (normalized.includes('prazan')) {
+    return { label: 'Kritično', className: 'water-level-status critical' };
+  }
+
+  if (normalized.includes('potrebno') || normalized.includes('pražnjenje')) {
+    return { label: 'Upozorenje', className: 'water-level-status warning' };
+  }
+
+  if (normalized.includes('punjenje')) {
+    return { label: 'Info', className: 'water-level-status info' };
+  }
+
+  return { label: 'Bez statusa', className: 'water-level-status neutral' };
 }
 
 function normalizePolygonGeojsonForTextarea(value) {
@@ -208,31 +239,59 @@ export function WaterObjectsPage() {
         </form>
       </section>
 
-      <section className="card">
+      <section className="card water-objects-list-card">
         <h3>Lista objekata</h3>
-        <ul className="water-list">
-          {items.map((item) => (
-            <li key={item.id}>
-              <div className="water-list-details">
-                <strong>{item.code}</strong>
-                <span>Tip: {item.object_type ?? '-'}</span>
-                <span>Ukupna površina: {formatArea(item.area_total_m2)}</span>
-                <span>Produktivna površina: {formatArea(item.area_productive_m2)}</span>
-                <span>Maks. dubina: {formatDepth(item.max_depth_m)}</span>
-                <span>Maks. volumen: {formatVolume(item.max_volume_m3)}</span>
-                <span>Napomena: {item.notes || '-'}</span>
-              </div>
-              <div className="row-actions">
-                <button type="button" onClick={() => startEdit(item)}>
-                  Uredi
-                </button>
-                <button type="button" onClick={() => handleDelete(item.id)}>
-                  Obriši
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Šifra</th>
+                <th>Tip</th>
+                <th>Ukupna površina</th>
+                <th>Produktivna površina</th>
+                <th>Površina ha</th>
+                <th>Puni cm</th>
+                <th>Trenutni cm</th>
+                <th>Nedostaje cm</th>
+                <th>Napomena vodostaja</th>
+                <th>Akcije</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => {
+                const waterLevel = item.latest_water_level_measurement;
+                const status = getWaterLevelStatus(waterLevel?.note);
+
+                return (
+                  <tr key={item.id}>
+                    <td><strong>{item.code}</strong></td>
+                    <td>{item.object_type ?? '-'}</td>
+                    <td>{formatArea(item.area_total_m2)}</td>
+                    <td>{formatArea(item.area_productive_m2)}</td>
+                    <td>{formatAreaHa(waterLevel?.area_ha)}</td>
+                    <td>{formatCentimeters(waterLevel?.water_level_full_cm)}</td>
+                    <td>{formatCentimeters(waterLevel?.water_level_current_cm)}</td>
+                    <td>{formatCentimeters(waterLevel?.water_level_missing_cm)}</td>
+                    <td>
+                      <span className={status.className}>{status.label}</span>
+                      <span className="water-level-note-text">{waterLevel?.note || '-'}</span>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" onClick={() => startEdit(item)}>
+                          Uredi
+                        </button>
+                        <button type="button" onClick={() => handleDelete(item.id)}>
+                          Obriši
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <WaterObjectsMap items={items} selectedObjectId={editingId} />
