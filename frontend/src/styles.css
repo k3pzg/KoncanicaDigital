@@ -820,3 +820,105 @@ button { cursor: pointer; }
   color: #b91c1c;
   background: #fee2e2;
 }
+
+/* ── active (cancel) state for quick action buttons ─────────────────────── */
+
+.pond-action-btn--active {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #92400e;
+}
+
+.pond-action-btn--active:hover {
+  background: #fde68a;
+}
+
+/* ── inline operational forms ────────────────────────────────────────────── */
+
+.pond-inline-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  display: grid;
+  gap: 1rem;
+}
+
+.pond-inline-form-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e40af;
+}
+
+.pond-inline-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.pond-inline-form-grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.pond-inline-form-grid input,
+.pond-inline-form-grid select,
+.pond-inline-form-grid textarea {
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.pond-inline-form-full {
+  grid-column: 1 / -1;
+}
+
+.pond-inline-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.success-text {
+  margin: 0;
+  color: #15803d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* stock hint shown in izlov form */
+.pond-stock-hint {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
+}
+
+/* ── control form lines ───────────────────────────────────────────────────── */
+
+.pond-control-lines {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pond-control-line {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+}
+
+.pond-control-line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}

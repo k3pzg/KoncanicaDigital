@@ -8,11 +8,17 @@ import {
   listWaterLevelMeasurementsRequest
 } from '../api/waterLevelsApi';
 import {
+  listFishCategoriesRequest,
   listFishControlEventsRequest,
   listFishEntryEventsRequest,
   listFishExitEventsRequest,
+  listFishSpeciesRequest,
   listFishStockCurrentRequest
 } from '../../fish/api/fishApi';
+import { listWaterObjectsRequest } from '../api/waterObjectsApi';
+import { PoribljavanjeForm } from '../../fish/components/PoribljavanjeForm';
+import { IzlovForm } from '../../fish/components/IzlovForm';
+import { KontrolaForm } from '../../fish/components/KontrolaForm';
 
 // ── label maps ────────────────────────────────────────────────────────────────
 
@@ -168,27 +174,44 @@ export function PondDetailPage() {
   const [entryEvents, setEntryEvents] = useState([]);
   const [exitEvents, setExitEvents] = useState([]);
   const [controlEvents, setControlEvents] = useState([]);
+  const [species, setSpecies] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [waterObjects, setWaterObjects] = useState([]);
 
   const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // active inline form: null | 'water' | 'poribljavanje' | 'izlov' | 'kontrola'
+  const [activeForm, setActiveForm] = useState(null);
+
   // water level form state
-  const [showWaterForm, setShowWaterForm] = useState(false);
   const [waterForm, setWaterForm] = useState(emptyWaterLevelForm);
   const [waterFormError, setWaterFormError] = useState('');
   const [waterFormSaving, setWaterFormSaving] = useState(false);
+
+  function toggleForm(name) {
+    setActiveForm((prev) => (prev === name ? null : name));
+    setWaterFormError('');
+  }
 
   async function loadAll() {
     setIsLoading(true);
     setLoadError('');
     try {
-      const [pondResult, stockResult, levelsResult, entryResult, exitResult, controlResult] = await Promise.all([
+      const [
+        pondResult, stockResult, levelsResult,
+        entryResult, exitResult, controlResult,
+        speciesResult, categoriesResult, waterObjectsResult
+      ] = await Promise.all([
         getWaterObjectByIdRequest(token, id),
         listFishStockCurrentRequest(token, id),
         listWaterLevelMeasurementsRequest(token, id),
         listFishEntryEventsRequest(token, id),
         listFishExitEventsRequest(token, id),
-        listFishControlEventsRequest(token, id)
+        listFishControlEventsRequest(token, id),
+        listFishSpeciesRequest(token),
+        listFishCategoriesRequest(token),
+        listWaterObjectsRequest(token)
       ]);
 
       setPond(pondResult.item ?? null);
@@ -196,6 +219,9 @@ export function PondDetailPage() {
       setWaterLevels(levelsResult.items ?? []);
       setEntryEvents(entryResult.items ?? []);
       setExitEvents(exitResult.items ?? []);
+      setSpecies(speciesResult.items ?? []);
+      setCategories(categoriesResult.items ?? []);
+      setWaterObjects(waterObjectsResult.items ?? []);
       setControlEvents(controlResult.items ?? []);
     } catch (err) {
       setLoadError(err.message ?? 'Greška pri učitavanju ribnjaka.');
@@ -244,7 +270,7 @@ export function PondDetailPage() {
         note: waterForm.note || null
       });
       setWaterForm({ ...emptyWaterLevelForm, measurement_date: todayIso() });
-      setShowWaterForm(false);
+      setActiveForm(null);
       const levelsResult = await listWaterLevelMeasurementsRequest(token, id);
       setWaterLevels(levelsResult.items ?? []);
     } catch (err) {
@@ -327,32 +353,35 @@ export function PondDetailPage() {
         <div className="pond-quick-actions">
           <button
             type="button"
-            className="pond-action-btn pond-action-btn--primary"
-            onClick={() => { setShowWaterForm((v) => !v); setWaterFormError(''); }}
+            className={`pond-action-btn ${activeForm === 'water' ? 'pond-action-btn--active' : 'pond-action-btn--primary'}`}
+            onClick={() => toggleForm('water')}
           >
-            {showWaterForm ? '✕ Odustani' : '+ Razina vode'}
+            {activeForm === 'water' ? '✕ Odustani' : '+ Razina vode'}
           </button>
-          <Link
-            to={`/app/fish-entry/new?waterObjectId=${pond.id}`}
-            className="pond-action-btn"
+          <button
+            type="button"
+            className={`pond-action-btn ${activeForm === 'poribljavanje' ? 'pond-action-btn--active' : ''}`}
+            onClick={() => toggleForm('poribljavanje')}
           >
-            + Poribljavanje
-          </Link>
-          <Link
-            to={`/app/fish-stock?waterObjectId=${pond.id}`}
-            className="pond-action-btn"
+            {activeForm === 'poribljavanje' ? '✕ Odustani' : '+ Poribljavanje'}
+          </button>
+          <button
+            type="button"
+            className={`pond-action-btn ${activeForm === 'izlov' ? 'pond-action-btn--active' : ''}`}
+            onClick={() => toggleForm('izlov')}
           >
-            + Izlov
-          </Link>
-          <Link
-            to={`/app/fish?waterObjectId=${pond.id}`}
-            className="pond-action-btn"
+            {activeForm === 'izlov' ? '✕ Odustani' : '+ Izlov'}
+          </button>
+          <button
+            type="button"
+            className={`pond-action-btn ${activeForm === 'kontrola' ? 'pond-action-btn--active' : ''}`}
+            onClick={() => toggleForm('kontrola')}
           >
-            + Kontrola
-          </Link>
+            {activeForm === 'kontrola' ? '✕ Odustani' : '+ Kontrola'}
+          </button>
         </div>
 
-        {showWaterForm && (
+        {activeForm === 'water' && (
           <form className="pond-water-form" onSubmit={handleWaterFormSubmit}>
             <h4>Unos razine vode — {pond.code}</h4>
             {waterFormError ? <p className="error-text">{waterFormError}</p> : null}
@@ -427,6 +456,38 @@ export function PondDetailPage() {
               {waterFormSaving ? 'Sprema se…' : 'Spremi mjerenje'}
             </button>
           </form>
+        )}
+
+        {activeForm === 'poribljavanje' && (
+          <PoribljavanjeForm
+            pondId={pond.id}
+            waterObjects={waterObjects}
+            species={species}
+            categories={categories}
+            onSave={() => { setActiveForm(null); loadAll(); }}
+            onCancel={() => setActiveForm(null)}
+          />
+        )}
+
+        {activeForm === 'izlov' && (
+          <IzlovForm
+            pondId={pond.id}
+            stock={stock}
+            species={species}
+            categories={categories}
+            onSave={() => { setActiveForm(null); loadAll(); }}
+            onCancel={() => setActiveForm(null)}
+          />
+        )}
+
+        {activeForm === 'kontrola' && (
+          <KontrolaForm
+            pondId={pond.id}
+            species={species}
+            categories={categories}
+            onSave={() => { setActiveForm(null); loadAll(); }}
+            onCancel={() => setActiveForm(null)}
+          />
         )}
       </section>
 
