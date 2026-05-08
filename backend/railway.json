@@ -4,6 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
+    "preDeployCommand": "npm run db:migrate && npm run db:seed",
     "startCommand": "node src/server.js",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
