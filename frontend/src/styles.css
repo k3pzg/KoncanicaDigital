@@ -10,7 +10,8 @@ body { margin: 0; }
 .app-shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
 .app-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #ffffff; }
 .app-header h1 { margin: 0; font-size: 1.25rem; }
-.app-header p { margin: 0.25rem 0 0; color: #64748b; }
+.app-header-home-link { color: inherit; text-decoration: none; }
+.app-header-home-link:hover { text-decoration: underline; }
 .app-content { display: grid; place-items: start center; padding: 2rem; }
 
 .card { width: min(620px, 100%); background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; }
