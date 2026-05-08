@@ -69,7 +69,7 @@ async function runSeed() {
   }
 
   console.log('Seed completed for users, fish species and fish categories.');
-  process.exit(0);
+  await db.end();
 }
 
 runSeed().catch((error) => {

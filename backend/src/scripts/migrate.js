@@ -34,6 +34,10 @@ async function runMigration() {
     console.log('All migrations applied successfully.');
   } finally {
     connection.release();
+    // End the pool so the process exits cleanly. Without this the mysql2 pool
+    // keeps idle connections and internal timers alive, hanging the process
+    // indefinitely after a successful run.
+    await db.end();
   }
 }
 
