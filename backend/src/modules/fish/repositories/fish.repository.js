@@ -20,8 +20,10 @@ function mapEntryRow(row) {
   };
 }
 
-export async function listFishEntryEvents() {
+export async function listFishEntryEvents(waterObjectId) {
   const db = getDatabasePool();
+  const where = waterObjectId ? 'WHERE fee.water_object_id = ?' : '';
+  const params = waterObjectId ? [waterObjectId] : [];
   const [rows] = await db.query(
     `SELECT fee.*, wo.code AS water_object_code, fs.code AS species_code, fs.label AS species_label,
             fc.code AS category_code, fc.label AS category_label,
@@ -31,7 +33,9 @@ export async function listFishEntryEvents() {
      INNER JOIN fish_species fs ON fs.id = fee.species_id
      INNER JOIN fish_categories fc ON fc.id = fee.category_id
      LEFT JOIN water_objects swo ON swo.id = fee.source_water_object_id
-     ORDER BY fee.event_date DESC, fee.id DESC`
+     ${where}
+     ORDER BY fee.event_date DESC, fee.id DESC`,
+    params
   );
 
   return rows.map(mapEntryRow);
@@ -237,8 +241,10 @@ function mapExitRow(row) {
   };
 }
 
-export async function listFishExitEvents() {
+export async function listFishExitEvents(waterObjectId) {
   const db = getDatabasePool();
+  const where = waterObjectId ? 'WHERE fxe.water_object_id = ?' : '';
+  const params = waterObjectId ? [waterObjectId] : [];
   const [rows] = await db.query(
     `SELECT fxe.*, wo.code AS water_object_code, fs.code AS species_code, fs.label AS species_label,
             fc.code AS category_code, fc.label AS category_label,
@@ -248,7 +254,9 @@ export async function listFishExitEvents() {
      INNER JOIN fish_species fs ON fs.id = fxe.species_id
      INNER JOIN fish_categories fc ON fc.id = fxe.category_id
      LEFT JOIN water_objects dwo ON dwo.id = fxe.destination_water_object_id
-     ORDER BY fxe.event_date DESC, fxe.id DESC`
+     ${where}
+     ORDER BY fxe.event_date DESC, fxe.id DESC`,
+    params
   );
 
   return rows.map(mapExitRow);
@@ -375,13 +383,17 @@ async function upsertCurrentStockRow(connection, payload) {
   );
 }
 
-export async function listFishControlEvents() {
+export async function listFishControlEvents(waterObjectId) {
   const db = getDatabasePool();
+  const where = waterObjectId ? 'WHERE fce.water_object_id = ?' : '';
+  const params = waterObjectId ? [waterObjectId] : [];
   const [rows] = await db.query(
     `SELECT fce.*, wo.code AS water_object_code
      FROM fish_control_events fce
      INNER JOIN water_objects wo ON wo.id = fce.water_object_id
-     ORDER BY fce.control_date DESC, fce.id DESC`
+     ${where}
+     ORDER BY fce.control_date DESC, fce.id DESC`,
+    params
   );
 
   return rows;

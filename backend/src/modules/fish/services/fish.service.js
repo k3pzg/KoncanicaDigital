@@ -32,8 +32,9 @@ export async function getFishCategories() {
   return listFishCategories();
 }
 
-export async function getFishEntryEvents() {
-  return listFishEntryEvents();
+export async function getFishEntryEvents(waterObjectId) {
+  const parsedId = waterObjectId ? Number(waterObjectId) : null;
+  return listFishEntryEvents(parsedId);
 }
 
 export async function getFishEntryEventById(id) {
@@ -72,12 +73,14 @@ export async function addFishEntryEvents(payload) {
   return Promise.all(ids.map((id) => findFishEntryEventById(id)));
 }
 
-export async function getFishControlEvents() {
-  return listFishControlEvents();
+export async function getFishControlEvents(waterObjectId) {
+  const parsedId = waterObjectId ? Number(waterObjectId) : null;
+  return listFishControlEvents(parsedId);
 }
 
-export async function getFishExitEvents() {
-  return listFishExitEvents();
+export async function getFishExitEvents(waterObjectId) {
+  const parsedId = waterObjectId ? Number(waterObjectId) : null;
+  return listFishExitEvents(parsedId);
 }
 
 export async function getFishExitEventById(id) {

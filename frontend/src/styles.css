@@ -35,7 +35,30 @@ button { cursor: pointer; }
 .map-svg { width: 100%; height: auto; border-radius: 0.5rem; }
 .water-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
 .water-list li { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center; }
-.row-actions { display: flex; gap: 0.5rem; }
+.row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
+.btn-link-action {
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid #2563eb;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #eff6ff;
+  color: #1d4ed8;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-link-action:hover {
+  background: #dbeafe;
+}
+
+.side-panel-open-btn-row {
+  margin-bottom: 0.75rem;
+}
 
 .water-objects-map {
   width: 100%;
@@ -534,4 +557,266 @@ button { cursor: pointer; }
 
 .fish-norm-list {
   margin-top: 0.25rem;
+}
+
+/* ── Pond Detail Page ────────────────────────────────────────────────────── */
+
+.pond-detail-layout {
+  display: grid;
+  gap: 1rem;
+  width: min(900px, 100%);
+}
+
+.pond-detail-card {
+  width: min(900px, 100%);
+}
+
+.pond-detail-header {
+  width: 100%;
+}
+
+.pond-detail-back {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.pond-detail-back a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.pond-detail-back a:hover {
+  text-decoration: underline;
+}
+
+.pond-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pond-detail-title-row h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.pond-type-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.pond-type-badge--inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.pond-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.pond-detail-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pond-detail-meta dt {
+  color: #64748b;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pond-detail-meta dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.pond-notes {
+  flex-basis: 100%;
+}
+
+.pond-detail-actions {
+  width: 100%;
+}
+
+.pond-detail-actions h3 {
+  margin: 0 0 0.75rem;
+}
+
+.pond-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pond-action-btn {
+  padding: 0.55rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #ffffff;
+  color: #0f172a;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pond-action-btn:hover {
+  background: #f1f5f9;
+}
+
+.pond-action-btn--primary {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.pond-action-btn--primary:hover {
+  background: #1d4ed8;
+}
+
+.pond-water-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pond-water-form h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pond-water-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+}
+
+.pond-water-form-grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.pond-water-form-grid input,
+.pond-water-form-grid textarea {
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.pond-water-form-note {
+  grid-column: 1 / -1;
+}
+
+.pond-detail-section {
+  width: 100%;
+}
+
+.pond-detail-section h3 {
+  margin: 0 0 0.75rem;
+}
+
+.pond-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.pond-section-header h3 {
+  margin: 0;
+}
+
+.pond-latest-badge {
+  font-size: 0.82rem;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.pond-stock-summary {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.pond-stock-summary article {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pond-stock-summary h4 {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.pond-stock-summary p {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pond-empty-state {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* event history rows */
+.event-row--entry td:first-child { border-left: 3px solid #22c55e; }
+.event-row--exit td:first-child { border-left: 3px solid #f97316; }
+.event-row--control td:first-child { border-left: 3px solid #60a5fa; }
+
+.event-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  vertical-align: middle;
+}
+
+.event-badge--entry { color: #15803d; }
+.event-badge--exit  { color: #c2410c; }
+.event-badge--control { color: #1d4ed8; }
+
+.btn-delete-small {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.3rem;
+}
+
+.btn-delete-small:hover {
+  color: #b91c1c;
+  background: #fee2e2;
 }

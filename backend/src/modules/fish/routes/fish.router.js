@@ -40,8 +40,8 @@ fishRouter.get('/fish-categories', async (_, response) => {
   return response.status(200).json({ items });
 });
 
-fishRouter.get('/fish-entry-events', async (_, response) => {
-  const items = await getFishEntryEvents();
+fishRouter.get('/fish-entry-events', async (request, response) => {
+  const items = await getFishEntryEvents(request.query.waterObjectId);
   return response.status(200).json({ items });
 });
 
@@ -85,13 +85,13 @@ fishRouter.post('/api/fish/entry-events', async (request, response) => {
   }
 });
 
-fishRouter.get('/fish-control-events', async (_, response) => {
-  const items = await getFishControlEvents();
+fishRouter.get('/fish-control-events', async (request, response) => {
+  const items = await getFishControlEvents(request.query.waterObjectId);
   return response.status(200).json({ items });
 });
 
-fishRouter.get('/fish-exit-events', async (_, response) => {
-  const items = await getFishExitEvents();
+fishRouter.get('/fish-exit-events', async (request, response) => {
+  const items = await getFishExitEvents(request.query.waterObjectId);
   return response.status(200).json({ items });
 });
 

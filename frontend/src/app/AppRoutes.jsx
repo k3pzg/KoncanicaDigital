@@ -7,6 +7,7 @@ import { WaterObjectsPage } from '../features/water-objects/pages/WaterObjectsPa
 import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
 import { FishStockPage } from '../features/fish/pages/FishStockPage';
 import { FishEntryFormPage } from '../features/fish/pages/FishEntryFormPage';
+import { PondDetailPage } from '../features/water-objects/pages/PondDetailPage';
 
 export function AppRoutes() {
   return (
@@ -62,6 +63,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <FishEntryFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/ponds/:id"
+        element={
+          <ProtectedRoute>
+            <PondDetailPage />
           </ProtectedRoute>
         }
       />
