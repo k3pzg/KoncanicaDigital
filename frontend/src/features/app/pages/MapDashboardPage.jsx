@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../../auth/state/AuthContext';
@@ -318,6 +318,7 @@ function escapeHtml(value) {
 
 export function MapDashboardPage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const layerGroupRef = useRef(null);
@@ -646,6 +647,15 @@ export function MapDashboardPage() {
         {!selectedObject ? <p>Nema odabranog objekta.</p> : null}
         {selectedObject ? (
           <>
+            <div className="side-panel-open-btn-row">
+              <button
+                type="button"
+                className="pond-action-btn pond-action-btn--primary"
+                onClick={() => navigate(`/app/ponds/${selectedObject.id}`)}
+              >
+                Otvori ribnjak →
+              </button>
+            </div>
             <dl className="object-detail-list">
               <div><dt>Šifra/naziv</dt><dd>{getObjectLabel(selectedObject)}</dd></div>
               <div><dt>Tip</dt><dd>{selectedObject.object_type ?? '-'}</dd></div>

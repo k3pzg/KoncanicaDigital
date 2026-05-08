@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/state/AuthContext';
 import {
   createWaterObjectRequest,
@@ -278,6 +279,9 @@ export function WaterObjectsPage() {
                     </td>
                     <td>
                       <div className="row-actions">
+                        <Link to={`/app/ponds/${item.id}`} className="btn-link-action">
+                          Detalji
+                        </Link>
                         <button type="button" onClick={() => startEdit(item)}>
                           Uredi
                         </button>

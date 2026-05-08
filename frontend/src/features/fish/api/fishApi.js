@@ -18,8 +18,9 @@ export function listFishCategoriesRequest(token) {
   return apiRequest('/fish-categories', { headers: authHeaders(token) });
 }
 
-export function listFishEntryEventsRequest(token) {
-  return apiRequest('/fish-entry-events', { headers: authHeaders(token) });
+export function listFishEntryEventsRequest(token, waterObjectId) {
+  const suffix = waterObjectId ? `?waterObjectId=${waterObjectId}` : '';
+  return apiRequest(`/fish-entry-events${suffix}`, { headers: authHeaders(token) });
 }
 
 export function createFishEntryEventRequest(token, payload) {
@@ -38,8 +39,14 @@ export function createFishEntryEventApiRequest(token, payload) {
   });
 }
 
-export function listFishControlEventsRequest(token) {
-  return apiRequest('/fish-control-events', { headers: authHeaders(token) });
+export function listFishControlEventsRequest(token, waterObjectId) {
+  const suffix = waterObjectId ? `?waterObjectId=${waterObjectId}` : '';
+  return apiRequest(`/fish-control-events${suffix}`, { headers: authHeaders(token) });
+}
+
+export function listFishExitEventsRequest(token, waterObjectId) {
+  const suffix = waterObjectId ? `?waterObjectId=${waterObjectId}` : '';
+  return apiRequest(`/fish-exit-events${suffix}`, { headers: authHeaders(token) });
 }
 
 export function createFishControlEventRequest(token, payload) {

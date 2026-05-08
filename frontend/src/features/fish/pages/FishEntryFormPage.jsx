@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/state/AuthContext';
 import { listWaterObjectsRequest } from '../../water-objects/api/waterObjectsApi';
 import {
@@ -11,7 +11,7 @@ import { FishEntryRow, OTHER_OPTION_VALUE } from '../components/FishEntryRow';
 
 const initialHeaderForm = {
   water_object_id: '',
-  event_date: '',
+  event_date: new Date().toISOString().slice(0, 10),
   source: ''
 };
 
@@ -69,7 +69,12 @@ function rowHasMissingRequiredFields(row) {
 export function FishEntryFormPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [headerForm, setHeaderForm] = useState(initialHeaderForm);
+  const [searchParams] = useSearchParams();
+  const preselectedWaterObjectId = searchParams.get('waterObjectId') ?? '';
+  const [headerForm, setHeaderForm] = useState({
+    ...initialHeaderForm,
+    water_object_id: preselectedWaterObjectId
+  });
   const [rows, setRows] = useState([createEmptyRow()]);
   const [waterObjects, setWaterObjects] = useState([]);
   const [species, setSpecies] = useState([]);
@@ -292,8 +297,17 @@ export function FishEntryFormPage() {
 
   return (
     <section className="card fish-stock-card">
-      <h2>Novi unos poribljavanja</h2>
-      <p>Dodavanje fish_entry_event zapisa (bulk unos).</p>
+      {preselectedWaterObjectId && (
+        <div className="pond-detail-back" style={{ marginBottom: '0.75rem' }}>
+          <a
+            href={`/app/ponds/${preselectedWaterObjectId}`}
+            onClick={(e) => { e.preventDefault(); navigate(`/app/ponds/${preselectedWaterObjectId}`); }}
+          >
+            ← Natrag na ribnjak
+          </a>
+        </div>
+      )}
+      <h2>Novo poribljavanje</h2>
 
       {error ? <p className="error-text">{error}</p> : null}
       {success ? <p>{success}</p> : null}

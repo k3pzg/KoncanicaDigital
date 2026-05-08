@@ -3,6 +3,7 @@ import cors from 'cors';
 import { healthRouter } from '../modules/health/health.router.js';
 import { authRouter } from '../modules/auth/routes/auth.router.js';
 import { waterObjectsRouter } from '../modules/water-objects/routes/water-objects.router.js';
+import { waterLevelsRouter } from '../modules/water-objects/routes/water-levels.router.js';
 import { fishRouter } from '../modules/fish/routes/fish.router.js';
 
 export function createApp() {
@@ -54,6 +55,7 @@ export function createApp() {
   app.use('/health', healthRouter);
   app.use('/auth', authRouter);
   app.use('/water-objects', waterObjectsRouter);
+  app.use('/water-level-measurements', waterLevelsRouter);
   app.use('/', fishRouter);
 
   return app;

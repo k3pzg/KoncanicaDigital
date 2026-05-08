@@ -11,6 +11,10 @@ export function listWaterObjectsRequest(token) {
   return apiRequest('/water-objects', { headers: authHeaders(token) });
 }
 
+export function getWaterObjectByIdRequest(token, id) {
+  return apiRequest(`/water-objects/${id}`, { headers: authHeaders(token) });
+}
+
 export function createWaterObjectRequest(token, payload) {
   return apiRequest('/water-objects', {
     method: 'POST',

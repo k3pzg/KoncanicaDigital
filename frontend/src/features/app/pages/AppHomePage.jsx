@@ -4,38 +4,33 @@ import { useAuth } from '../../auth/state/AuthContext';
 const navigationCards = [
   {
     title: 'Karta ribnjaka',
-    description: 'Primarni operativni ekran sa satelitskom kartom, objektima i stanjem fonda.',
+    description: 'Satelitska karta svih ribnjaka s prikazom vodostaja i stanja ribe.',
     to: '/app/map',
     primary: true
   },
   {
     title: 'Vodni objekti',
-    description: 'Pregled i uređivanje šifri, površina, dubina, volumena i geometrije.',
+    description: 'Popis svih ribnjaka. Kliknite "Detalji" za povijest, vodostaj i fond.',
     to: '/app/water-objects'
   },
   {
     title: 'Stanje ribljeg fonda',
-    description: 'Tablični pregled ribe po objektu, vrsti i kategoriji.',
+    description: 'Pregled trenutnog fonda ribe po objektu, vrsti i kategoriji.',
     to: '/app/fish-stock'
   },
   {
     title: 'Novo poribljavanje',
-    description: 'Unos novog nasada ili dodatnog poribljavanja.',
+    description: 'Unos nasada ili premještaja ribe u ribnjak.',
     to: '/app/fish-entry/new'
   },
   {
     title: 'Novi izlov',
-    description: 'Evidencija izlova kroz obrazac na pregledu stanja fonda.',
+    description: 'Evidencija izlova i premještaja ribe iz ribnjaka.',
     to: '/app/fish-stock'
   },
   {
     title: 'Nova kontrola',
-    description: 'Unos kontrolnog uzorkovanja i procjene po vrstama.',
-    to: '/app/fish'
-  },
-  {
-    title: 'Premještaj ribe',
-    description: 'Evidencija premještaja kroz postojeći modul ribe faze 1.',
+    description: 'Unos kontrolnog uzorkovanja i procjene broja ribe.',
     to: '/app/fish'
   }
 ];
