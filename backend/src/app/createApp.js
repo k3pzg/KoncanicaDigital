@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import { getEnv } from '../config/env.js';
 import { healthRouter } from '../modules/health/health.router.js';
 import { authRouter } from '../modules/auth/routes/auth.router.js';
 import { waterObjectsRouter } from '../modules/water-objects/routes/water-objects.router.js';
@@ -8,7 +7,12 @@ import { fishRouter } from '../modules/fish/routes/fish.router.js';
 
 export function createApp() {
   const app = express();
-  const { corsOrigins, nodeEnv } = getEnv();
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+
+  const corsOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const staticOrigins = [
     'http://localhost:5173',
