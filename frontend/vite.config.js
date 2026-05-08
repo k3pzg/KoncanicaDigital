@@ -30,6 +30,6 @@ export default defineConfig({
     host: '0.0.0.0',
     port: Number(process.env.PORT ?? 4173),
     // Allow any *.railway.app subdomain plus any explicitly listed hosts
-    allowedHosts: ['all', ...extraHosts],
+    allowedHosts: ['koncanicadigital.up.railway.app', ...extraHosts],
   },
 });
