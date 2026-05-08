@@ -7,13 +7,14 @@ async function bootstrap() {
 
   console.log(`Starting backend (${env.nodeEnv}) — DB: ${env.mysqlHost}:${env.mysqlPort}/${env.mysqlDatabase}`);
 
-  await testDatabaseConnection();
-  console.log('Database connection OK.');
-
   const app = createApp();
 
   app.listen(env.port, '0.0.0.0', () => {
     console.log(`Backend listening on 0.0.0.0:${env.port}`);
+
+    testDatabaseConnection()
+      .then(() => console.log('Database connection OK.'))
+      .catch((err) => console.error('Database connection failed:', err.message));
   });
 }
 
