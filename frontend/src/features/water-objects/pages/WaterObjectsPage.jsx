@@ -93,7 +93,17 @@ export function WaterObjectsPage() {
 
   function handleFieldChange(event) {
     const { name, value, type, checked } = event.target;
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setForm((prev) => {
+      const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      if (name === 'area_total_m2' || name === 'max_depth_m') {
+        const area = Number(name === 'area_total_m2' ? value : next.area_total_m2);
+        const depth = Number(name === 'max_depth_m' ? value : next.max_depth_m);
+        if (Number.isFinite(area) && area > 0 && Number.isFinite(depth) && depth > 0) {
+          next.max_volume_m3 = String(Math.round(area * depth * 100) / 100);
+        }
+      }
+      return next;
+    });
   }
 
   async function handleSubmit(event) {
@@ -198,7 +208,12 @@ export function WaterObjectsPage() {
             </label>
             <label>
               Maksimalni volumen (m³)
-              <input name="max_volume_m3" type="number" step="any" value={form.max_volume_m3} onChange={handleFieldChange} />
+              <input name="max_volume_m3" type="number" step="any" value={form.max_volume_m3} onChange={handleFieldChange} placeholder="Automatski: površina × dubina" />
+              {form.max_volume_m3 && form.area_total_m2 && form.max_depth_m && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
+                  Izracunato iz {form.area_total_m2} m² × {form.max_depth_m} m
+                </span>
+              )}
             </label>
 
             {/* Geometry / admin fields — less prominent */}

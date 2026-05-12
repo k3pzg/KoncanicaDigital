@@ -1620,6 +1620,104 @@ textarea {
   color: var(--color-text-muted);
 }
 
+/* ── Fish ops page tabs ──────────────────────────────────────────────────────── */
+
+.fish-ops-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 1.5rem;
+}
+
+.fish-ops-tab {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.fish-ops-tab:hover {
+  color: var(--color-text);
+  border-bottom-color: var(--color-border-input);
+}
+
+.fish-ops-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Fish ops forms ───────────────────────────────────────────────────────────── */
+
+.fish-ops-form {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.fish-ops-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.fish-ops-form .field-full {
+  grid-column: 1 / -1;
+}
+
+.fish-ops-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+
+/* ── Control line cards ───────────────────────────────────────────────────────── */
+
+.control-line-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  background: #fafbfd;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.control-line-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-line-card-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.control-subsection {
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-light);
+  padding: 0.4rem 0 0.1rem;
+  border-top: 1px solid var(--color-border);
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 1100px) {

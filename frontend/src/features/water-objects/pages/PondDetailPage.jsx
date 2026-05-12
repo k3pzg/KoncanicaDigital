@@ -79,6 +79,11 @@ function formatDepth(value) {
   return `${formatDecimal(value)} m`;
 }
 
+function formatVolume(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  return `${formatDecimal(value)} m³`;
+}
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -343,6 +348,7 @@ export function PondDetailPage() {
           {pond.area_total_m2 ? <div><dt>Ukupna površina</dt><dd>{formatArea(pond.area_total_m2)}</dd></div> : null}
           {pond.area_productive_m2 ? <div><dt>Produktivna površina</dt><dd>{formatArea(pond.area_productive_m2)}</dd></div> : null}
           {pond.max_depth_m ? <div><dt>Maksimalna dubina</dt><dd>{formatDepth(pond.max_depth_m)}</dd></div> : null}
+          {pond.max_volume_m3 ? <div><dt>Maks. volumen</dt><dd>{formatVolume(pond.max_volume_m3)}</dd></div> : null}
           {pond.notes ? <div className="pond-notes"><dt>Napomena</dt><dd>{pond.notes}</dd></div> : null}
         </dl>
       </section>
