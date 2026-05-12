@@ -7,6 +7,7 @@ import { WaterObjectsPage } from '../features/water-objects/pages/WaterObjectsPa
 import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
 import { FishStockPage } from '../features/fish/pages/FishStockPage';
 import { FishEntryFormPage } from '../features/fish/pages/FishEntryFormPage';
+import { IzlovPage } from '../features/fish/pages/IzlovPage';
 import { PondDetailPage } from '../features/water-objects/pages/PondDetailPage';
 import { HranjenjePage } from '../features/feeding/pages/HranjenjePage';
 
@@ -48,6 +49,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <FishPhaseOnePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/izlov"
+        element={
+          <ProtectedRoute>
+            <IzlovPage />
           </ProtectedRoute>
         }
       />

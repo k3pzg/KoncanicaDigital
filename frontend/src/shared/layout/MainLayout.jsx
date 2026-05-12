@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { section: 'Riblji fond' },
   { label: 'Pregled fonda', to: '/app/fish-stock' },
   { label: 'Poribljavanje', to: '/app/fish-entry/new' },
-  { label: 'Izlov', to: '/app/fish' },
+  { label: 'Izlov', to: '/app/izlov' },
   { label: 'Kontrola', to: '/app/fish' },
   { divider: true },
   { section: 'Operacije' },

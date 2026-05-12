@@ -39,9 +39,24 @@ function formatDepth(value) {
   return `${formatDecimal(value)} m`;
 }
 
+function computeVolume(item) {
+  const stored = Number(item?.max_volume_m3);
+  if (Number.isFinite(stored) && stored > 0) return stored;
+  const area = Number(item?.area_total_m2);
+  const depth = Number(item?.max_depth_m);
+  if (Number.isFinite(area) && area > 0 && Number.isFinite(depth) && depth > 0) return area * depth;
+  return null;
+}
+
 function formatVolume(value) {
   if (value === null || value === undefined || value === '') return '-';
   return `${formatDecimal(value)} m³`;
+}
+
+function formatComputedVolume(item) {
+  const vol = computeVolume(item);
+  if (vol === null) return '-';
+  return `${formatDecimal(vol)} m³`;
 }
 
 function getWaterLevelStatus(measurement) {
@@ -158,13 +173,14 @@ export function WaterObjectsPage() {
   function startEdit(item) {
     setEditingId(item.id);
     setShowAddForm(false);
+    const computedVol = computeVolume(item);
     setForm({
       code: item.code ?? '',
       object_type: item.object_type ?? 'ribnjak',
       area_total_m2: item.area_total_m2 ?? '',
       area_productive_m2: item.area_productive_m2 ?? '',
       max_depth_m: item.max_depth_m ?? '',
-      max_volume_m3: item.max_volume_m3 ?? '',
+      max_volume_m3: computedVol !== null ? String(computedVol.toFixed(2)) : '',
       is_active: Boolean(item.is_active),
       notes: item.notes ?? '',
       centroid_wkt: item.centroid_wkt ?? '',
@@ -366,7 +382,7 @@ export function WaterObjectsPage() {
                     </td>
                     <td className="numeric-cell">{formatArea(item.area_total_m2)}</td>
                     <td className="numeric-cell">{formatDepth(item.max_depth_m)}</td>
-                    <td className="numeric-cell">{formatVolume(item.max_volume_m3)}</td>
+                    <td className="numeric-cell">{formatComputedVolume(item)}</td>
                     <td>
                       <span className={status.className}>{status.label}</span>
                     </td>

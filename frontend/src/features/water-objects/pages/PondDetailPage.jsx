@@ -83,6 +83,20 @@ function formatDepth(value) {
   return `${formatDecimal(value)} m`;
 }
 
+function computeDisplayVolume(pond) {
+  const stored = Number(pond?.max_volume_m3);
+  if (Number.isFinite(stored) && stored > 0) return stored;
+  const area = Number(pond?.area_total_m2);
+  const depth = Number(pond?.max_depth_m);
+  if (Number.isFinite(area) && area > 0 && Number.isFinite(depth) && depth > 0) return area * depth;
+  return null;
+}
+
+function formatVolume(value) {
+  if (value === null || value === undefined) return '-';
+  return `${formatDecimal(value)} m³`;
+}
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -357,6 +371,7 @@ export function PondDetailPage() {
           {pond.area_total_m2 ? <div><dt>Ukupna površina</dt><dd>{formatArea(pond.area_total_m2)}</dd></div> : null}
           {pond.area_productive_m2 ? <div><dt>Produktivna površina</dt><dd>{formatArea(pond.area_productive_m2)}</dd></div> : null}
           {pond.max_depth_m ? <div><dt>Maksimalna dubina</dt><dd>{formatDepth(pond.max_depth_m)}</dd></div> : null}
+          {computeDisplayVolume(pond) !== null ? <div><dt>Maks. volumen</dt><dd>{formatVolume(computeDisplayVolume(pond))}</dd></div> : null}
           {pond.notes ? <div className="pond-notes"><dt>Napomena</dt><dd>{pond.notes}</dd></div> : null}
         </dl>
       </section>
