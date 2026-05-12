@@ -8,6 +8,7 @@ import { FishPhaseOnePage } from '../features/fish/pages/FishPhaseOnePage';
 import { FishStockPage } from '../features/fish/pages/FishStockPage';
 import { FishEntryFormPage } from '../features/fish/pages/FishEntryFormPage';
 import { PondDetailPage } from '../features/water-objects/pages/PondDetailPage';
+import { HranjenjePage } from '../features/feeding/pages/HranjenjePage';
 
 export function AppRoutes() {
   return (
@@ -71,6 +72,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <PondDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/hranjenje"
+        element={
+          <ProtectedRoute>
+            <HranjenjePage />
           </ProtectedRoute>
         }
       />

@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { divider: true },
   { section: 'Operacije' },
   { label: 'Vodostaji', to: '/app/map' },
-  { label: 'Hranjenje', to: null, soon: true },
+  { label: 'Hranjenje', to: '/app/hranjenje' },
 ];
 
 export function MainLayout({ children }) {
