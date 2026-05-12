@@ -330,6 +330,9 @@ export function MapDashboardPage() {
   const [stockError, setStockError] = useState('');
   const [isLoadingWaterObjects, setIsLoadingWaterObjects] = useState(true);
   const [isLoadingStock, setIsLoadingStock] = useState(true);
+  const didInitialFitRef = useRef(false);
+  const prevSelectedIdRef = useRef(null);
+  const selectedLayerRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -534,6 +537,7 @@ export function MapDashboardPage() {
     }
 
     layerGroup.clearLayers();
+    selectedLayerRef.current = null;
     const polygonBounds = L.latLngBounds([]);
     const allBounds = L.latLngBounds([]);
 
@@ -574,17 +578,37 @@ export function MapDashboardPage() {
         allBounds.extend(centroid);
       }
 
+      if (isSelected) {
+        selectedLayerRef.current = layer;
+      }
+
       layer.on('click', () => setSelectedObjectId(item.id));
       layer.bindPopup(`<strong>${escapeHtml(getObjectLabel(item))}</strong><br>${escapeHtml(MAP_MODES[mapMode].label)}: ${escapeHtml(modeStatus.label)}`);
       layer.addTo(layerGroup);
     });
 
-    if (polygonBounds.isValid()) {
-      map.fitBounds(polygonBounds, { padding: [30, 30], maxZoom: 16 });
-    } else if (allBounds.isValid()) {
-      map.fitBounds(allBounds, { padding: [30, 30], maxZoom: 16 });
-    } else {
-      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    const selectionChanged = prevSelectedIdRef.current !== selectedObjectId;
+    prevSelectedIdRef.current = selectedObjectId;
+
+    if (!didInitialFitRef.current && drawableObjects.length > 0) {
+      didInitialFitRef.current = true;
+      if (polygonBounds.isValid()) {
+        map.fitBounds(polygonBounds, { padding: [30, 30], maxZoom: 16 });
+      } else if (allBounds.isValid()) {
+        map.fitBounds(allBounds, { padding: [30, 30], maxZoom: 16 });
+      } else {
+        map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      }
+    } else if (didInitialFitRef.current && selectionChanged && selectedObjectId) {
+      const sel = selectedLayerRef.current;
+      if (sel) {
+        if (sel.getBounds) {
+          const bounds = sel.getBounds();
+          if (bounds.isValid()) map.panTo(bounds.getCenter());
+        } else if (sel.getLatLng) {
+          map.panTo(sel.getLatLng());
+        }
+      }
     }
   }, [drawableObjects, mapMode, selectedObjectId, stockSummaryByWaterObjectKey]);
 
