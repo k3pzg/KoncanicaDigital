@@ -20,7 +20,9 @@ import { PoribljavanjeForm } from '../../fish/components/PoribljavanjeForm';
 import { IzlovForm } from '../../fish/components/IzlovForm';
 import { KontrolaForm } from '../../fish/components/KontrolaForm';
 import { FeedingEventForm } from '../../feeding/components/FeedingEventForm';
-import { listFeedTypesRequest, listFeedStockRequest } from '../../feeding/api/feedingApi';
+import { listFeedTypesRequest, listFeedStockRequest, listFeedingEventsRequest } from '../../feeding/api/feedingApi';
+import { PondSummaryCards } from '../components/PondSummaryCards';
+import { PondCharts } from '../components/PondCharts';
 
 // ── label maps ────────────────────────────────────────────────────────────────
 
@@ -181,6 +183,7 @@ export function PondDetailPage() {
   const [waterObjects, setWaterObjects] = useState([]);
   const [feedTypes, setFeedTypes] = useState([]);
   const [feedStock, setFeedStock] = useState([]);
+  const [feedingEvents, setFeedingEvents] = useState([]);
 
   const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -206,7 +209,7 @@ export function PondDetailPage() {
         pondResult, stockResult, levelsResult,
         entryResult, exitResult, controlResult,
         speciesResult, categoriesResult, waterObjectsResult,
-        feedTypesResult, feedStockResult
+        feedTypesResult, feedStockResult, feedingEventsResult
       ] = await Promise.all([
         getWaterObjectByIdRequest(token, id),
         listFishStockCurrentRequest(token, id),
@@ -218,7 +221,8 @@ export function PondDetailPage() {
         listFishCategoriesRequest(token),
         listWaterObjectsRequest(token),
         listFeedTypesRequest(token),
-        listFeedStockRequest(token)
+        listFeedStockRequest(token),
+        listFeedingEventsRequest(token, { waterObjectId: id })
       ]);
 
       setPond(pondResult.item ?? null);
@@ -232,6 +236,7 @@ export function PondDetailPage() {
       setControlEvents(controlResult.items ?? []);
       setFeedTypes(feedTypesResult.items ?? []);
       setFeedStock(feedStockResult.items ?? []);
+      setFeedingEvents(feedingEventsResult.items ?? []);
     } catch (err) {
       setLoadError(err.message ?? 'Greška pri učitavanju ribnjaka.');
     } finally {
@@ -354,6 +359,28 @@ export function PondDetailPage() {
           {pond.max_depth_m ? <div><dt>Maksimalna dubina</dt><dd>{formatDepth(pond.max_depth_m)}</dd></div> : null}
           {pond.notes ? <div className="pond-notes"><dt>Napomena</dt><dd>{pond.notes}</dd></div> : null}
         </dl>
+      </section>
+
+      {/* ── summary cards ── */}
+      <section className="card pond-detail-section">
+        <h3>Pregled</h3>
+        <PondSummaryCards
+          stock={stock}
+          waterLevels={waterLevels}
+          controlEvents={controlEvents}
+          feedingEvents={feedingEvents}
+        />
+      </section>
+
+      {/* ── charts ── */}
+      <section className="card pond-detail-section">
+        <h3>Trendovi</h3>
+        <PondCharts
+          waterLevels={waterLevels}
+          entryEvents={entryEvents}
+          exitEvents={exitEvents}
+          feedingEvents={feedingEvents}
+        />
       </section>
 
       {/* ── quick actions ── */}
