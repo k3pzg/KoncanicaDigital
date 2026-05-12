@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS feed_receipts (
 CREATE TABLE IF NOT EXISTS feeding_events (
   id              INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
   feed_type_id    INT UNSIGNED  NOT NULL,
-  water_object_id INT UNSIGNED  NOT NULL,
+  water_object_id BIGINT UNSIGNED  NOT NULL,
   quantity_kg     DECIMAL(10,3) NOT NULL,
   event_date      DATE          NOT NULL,
   note            TEXT          NULL,
