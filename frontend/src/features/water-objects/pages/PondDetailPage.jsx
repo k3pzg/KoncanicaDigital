@@ -19,6 +19,8 @@ import { listWaterObjectsRequest } from '../api/waterObjectsApi';
 import { PoribljavanjeForm } from '../../fish/components/PoribljavanjeForm';
 import { IzlovForm } from '../../fish/components/IzlovForm';
 import { KontrolaForm } from '../../fish/components/KontrolaForm';
+import { FeedingEventForm } from '../../feeding/components/FeedingEventForm';
+import { listFeedTypesRequest, listFeedStockRequest } from '../../feeding/api/feedingApi';
 
 // ── label maps ────────────────────────────────────────────────────────────────
 
@@ -177,6 +179,8 @@ export function PondDetailPage() {
   const [species, setSpecies] = useState([]);
   const [categories, setCategories] = useState([]);
   const [waterObjects, setWaterObjects] = useState([]);
+  const [feedTypes, setFeedTypes] = useState([]);
+  const [feedStock, setFeedStock] = useState([]);
 
   const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -201,7 +205,8 @@ export function PondDetailPage() {
       const [
         pondResult, stockResult, levelsResult,
         entryResult, exitResult, controlResult,
-        speciesResult, categoriesResult, waterObjectsResult
+        speciesResult, categoriesResult, waterObjectsResult,
+        feedTypesResult, feedStockResult
       ] = await Promise.all([
         getWaterObjectByIdRequest(token, id),
         listFishStockCurrentRequest(token, id),
@@ -211,7 +216,9 @@ export function PondDetailPage() {
         listFishControlEventsRequest(token, id),
         listFishSpeciesRequest(token),
         listFishCategoriesRequest(token),
-        listWaterObjectsRequest(token)
+        listWaterObjectsRequest(token),
+        listFeedTypesRequest(token),
+        listFeedStockRequest(token)
       ]);
 
       setPond(pondResult.item ?? null);
@@ -223,6 +230,8 @@ export function PondDetailPage() {
       setCategories(categoriesResult.items ?? []);
       setWaterObjects(waterObjectsResult.items ?? []);
       setControlEvents(controlResult.items ?? []);
+      setFeedTypes(feedTypesResult.items ?? []);
+      setFeedStock(feedStockResult.items ?? []);
     } catch (err) {
       setLoadError(err.message ?? 'Greška pri učitavanju ribnjaka.');
     } finally {
@@ -379,6 +388,13 @@ export function PondDetailPage() {
           >
             {activeForm === 'kontrola' ? 'Odustani' : 'Kontrola'}
           </button>
+          <button
+            type="button"
+            className={`pond-action-btn ${activeForm === 'hranjenje' ? 'pond-action-btn--active' : ''}`}
+            onClick={() => toggleForm('hranjenje')}
+          >
+            {activeForm === 'hranjenje' ? 'Odustani' : 'Hranjenje'}
+          </button>
         </div>
 
         {activeForm === 'water' && (
@@ -485,6 +501,16 @@ export function PondDetailPage() {
             pondId={pond.id}
             species={species}
             categories={categories}
+            onSave={() => { setActiveForm(null); loadAll(); }}
+            onCancel={() => setActiveForm(null)}
+          />
+        )}
+
+        {activeForm === 'hranjenje' && (
+          <FeedingEventForm
+            pondId={pond.id}
+            feedTypes={feedTypes}
+            feedStock={feedStock}
             onSave={() => { setActiveForm(null); loadAll(); }}
             onCancel={() => setActiveForm(null)}
           />

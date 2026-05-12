@@ -18,7 +18,16 @@ function translateBackendMessage(message) {
     'category_id is required': 'Kategorija je obavezna.',
     'at least one control line is required': 'Potreban je barem jedan redak kontrole.',
     'izlov cannot reduce stock below zero': 'Izlov ne može smanjiti stanje ispod nule.',
-    'Database unavailable': 'Baza podataka nije dostupna. Provjerite da je MySQL pokrenut.'
+    'Database unavailable': 'Baza podataka nije dostupna. Provjerite da je MySQL pokrenut.',
+    'feed_type_id or new_feed_type_name is required': 'Vrsta hrane je obavezna.',
+    'quantity_kg is required': 'Količina hrane je obavezna.',
+    'quantity_kg must be greater than zero': 'Količina mora biti veća od nule.',
+    'receipt_date is required': 'Datum primitka je obavezan.',
+    'water_object_id is required': 'Vodni objekt je obavezan.',
+    'event_date is required': 'Datum hranjenja je obavezan.',
+    'feed_type_already_exists': 'Vrsta hrane s tim nazivom već postoji.',
+    'name is required': 'Naziv vrste hrane je obavezan.',
+    'name is too long': 'Naziv vrste hrane je predugačak (max. 100 znakova).'
   };
 
   return map[message] ?? message;
