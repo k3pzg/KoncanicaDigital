@@ -356,28 +356,28 @@ export function PondDetailPage() {
             className={`pond-action-btn ${activeForm === 'water' ? 'pond-action-btn--active' : 'pond-action-btn--primary'}`}
             onClick={() => toggleForm('water')}
           >
-            {activeForm === 'water' ? '✕ Odustani' : '+ Razina vode'}
+            {activeForm === 'water' ? 'Odustani' : 'Razina vode'}
           </button>
           <button
             type="button"
             className={`pond-action-btn ${activeForm === 'poribljavanje' ? 'pond-action-btn--active' : ''}`}
             onClick={() => toggleForm('poribljavanje')}
           >
-            {activeForm === 'poribljavanje' ? '✕ Odustani' : '+ Poribljavanje'}
+            {activeForm === 'poribljavanje' ? 'Odustani' : 'Poribljavanje'}
           </button>
           <button
             type="button"
             className={`pond-action-btn ${activeForm === 'izlov' ? 'pond-action-btn--active' : ''}`}
             onClick={() => toggleForm('izlov')}
           >
-            {activeForm === 'izlov' ? '✕ Odustani' : '+ Izlov'}
+            {activeForm === 'izlov' ? 'Odustani' : 'Izlov'}
           </button>
           <button
             type="button"
             className={`pond-action-btn ${activeForm === 'kontrola' ? 'pond-action-btn--active' : ''}`}
             onClick={() => toggleForm('kontrola')}
           >
-            {activeForm === 'kontrola' ? '✕ Odustani' : '+ Kontrola'}
+            {activeForm === 'kontrola' ? 'Odustani' : 'Kontrola'}
           </button>
         </div>
 
@@ -452,7 +452,7 @@ export function PondDetailPage() {
                 />
               </label>
             </div>
-            <button type="submit" disabled={waterFormSaving}>
+            <button type="submit" className="pond-action-btn pond-action-btn--primary" disabled={waterFormSaving}>
               {waterFormSaving ? 'Sprema se…' : 'Spremi mjerenje'}
             </button>
           </form>
@@ -576,9 +576,8 @@ export function PondDetailPage() {
                         type="button"
                         className="btn-delete-small"
                         onClick={() => handleDeleteWaterLevel(m.id)}
-                        title="Obriši"
                       >
-                        ✕
+                        Obriši
                       </button>
                     </td>
                   </tr>

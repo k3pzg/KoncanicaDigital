@@ -183,11 +183,13 @@ export function WaterObjectsPage() {
   return (
     <div className="water-objects-grid">
       <section className="card">
-        <h2>Vodni objekti</h2>
+        <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>
+          {editingId ? 'Uredi vodni objekt' : 'Novi vodni objekt'}
+        </h2>
         {error ? <p className="error-text">{error}</p> : null}
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="water-obj-form" onSubmit={handleSubmit}>
           <label>
-            Šifra
+            Šifra *
             <input
               name="code"
               value={form.code}
@@ -221,22 +223,34 @@ export function WaterObjectsPage() {
             Maksimalni volumen (m³)
             <input name="max_volume_m3" value={form.max_volume_m3} onChange={handleFieldChange} />
           </label>
-          <label>
+          <label className="field-full">
             Centroid (WKT)
-            <textarea name="centroid_wkt" value={form.centroid_wkt} onChange={handleFieldChange} />
+            <textarea name="centroid_wkt" value={form.centroid_wkt} onChange={handleFieldChange} rows={2} />
           </label>
-          <label>
+          <label className="field-full">
             Poligon (GeoJSON)
-            <textarea name="polygon_geojson" value={form.polygon_geojson} onChange={handleFieldChange} />
+            <textarea name="polygon_geojson" value={form.polygon_geojson} onChange={handleFieldChange} rows={3} />
           </label>
-          <label>
+          <label className="field-full">
             Napomena
-            <textarea name="notes" value={form.notes} onChange={handleFieldChange} />
+            <textarea name="notes" value={form.notes} onChange={handleFieldChange} rows={2} />
           </label>
-          <label>
-            <input name="is_active" type="checkbox" checked={form.is_active} onChange={handleFieldChange} /> Aktivan
+          <label className="field-full" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', display: 'flex' }}>
+            <input name="is_active" type="checkbox" checked={form.is_active} onChange={handleFieldChange} style={{ width: 'auto' }} />
+            Aktivan
           </label>
-          <button type="submit">{submitLabel}</button>
+          <div className="water-obj-form-actions">
+            <button type="submit" className="btn btn--primary">{submitLabel}</button>
+            {editingId && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => { setEditingId(null); setForm(initialForm); setError(''); }}
+              >
+                Odustani
+              </button>
+            )}
+          </div>
         </form>
       </section>
 
@@ -282,10 +296,10 @@ export function WaterObjectsPage() {
                         <Link to={`/app/ponds/${item.id}`} className="btn-link-action">
                           Detalji
                         </Link>
-                        <button type="button" onClick={() => startEdit(item)}>
+                        <button type="button" className="btn btn--sm" onClick={() => startEdit(item)}>
                           Uredi
                         </button>
-                        <button type="button" onClick={() => handleDelete(item.id)}>
+                        <button type="button" className="btn btn--sm btn--danger" onClick={() => handleDelete(item.id)}>
                           Obriši
                         </button>
                       </div>
