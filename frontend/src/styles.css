@@ -560,10 +560,20 @@ textarea {
 }
 
 .table-wrap tbody td {
-  padding: 0.6rem 0.7rem;
+  padding: 0.45rem 0.7rem;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
   vertical-align: middle;
+}
+
+/* Compact table for water objects — tighter rows */
+.water-objects-table tbody td {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.855rem;
+}
+
+.water-objects-table thead th {
+  padding: 0.4rem 0.65rem;
 }
 
 .table-wrap tbody tr:last-child td {
@@ -722,7 +732,7 @@ textarea {
 }
 
 .water-objects-list-card {
-  /* inherits single column */
+  width: 100%;
 }
 
 .map-card {

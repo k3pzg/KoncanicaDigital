@@ -39,6 +39,11 @@ function formatDepth(value) {
   return `${formatDecimal(value)} m`;
 }
 
+function formatVolume(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  return `${formatDecimal(value)} m³`;
+}
+
 function getWaterLevelStatus(measurement) {
   if (!measurement) return { label: 'Nema podataka', className: 'water-level-status neutral' };
   const note = String(measurement.note ?? '').toLowerCase();
@@ -55,6 +60,15 @@ function normalizePolygonGeojsonForTextarea(value) {
   if (!value) return '';
   if (typeof value === 'string') return value;
   try { return JSON.stringify(value, null, 2); } catch { return ''; }
+}
+
+function autoVolume(area, depth) {
+  const a = Number(area);
+  const d = Number(depth);
+  if (Number.isFinite(a) && a > 0 && Number.isFinite(d) && d > 0) {
+    return (a * d).toFixed(2);
+  }
+  return '';
 }
 
 const INITIAL_FORM = {
@@ -77,6 +91,7 @@ export function WaterObjectsPage() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [error, setError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   async function loadItems() {
     const result = await listWaterObjectsRequest(token);
@@ -91,9 +106,31 @@ export function WaterObjectsPage() {
   const isFormVisible = showAddForm || editingId !== null;
   const submitLabel = useMemo(() => (editingId ? 'Spremi promjene' : 'Dodaj vodni objekt'), [editingId]);
 
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => {
+      const typeLabel = (OBJECT_TYPE_LABELS[item.object_type] ?? item.object_type ?? '').toLowerCase();
+      return (
+        (item.code ?? '').toLowerCase().includes(q) ||
+        typeLabel.includes(q)
+      );
+    });
+  }, [items, searchQuery]);
+
   function handleFieldChange(event) {
     const { name, value, type, checked } = event.target;
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setForm((prev) => {
+      const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      // Auto-calculate volume from area × depth
+      if (name === 'area_total_m2' || name === 'max_depth_m') {
+        const area = name === 'area_total_m2' ? value : prev.area_total_m2;
+        const depth = name === 'max_depth_m' ? value : prev.max_depth_m;
+        const vol = autoVolume(area, depth);
+        if (vol) next.max_volume_m3 = vol;
+      }
+      return next;
+    });
   }
 
   async function handleSubmit(event) {
@@ -150,6 +187,16 @@ export function WaterObjectsPage() {
     await loadItems();
   }
 
+  function handlePolygonDrawn(geojsonStr, centroidWkt) {
+    setForm((prev) => ({
+      ...prev,
+      polygon_geojson: geojsonStr,
+      centroid_wkt: centroidWkt || prev.centroid_wkt
+    }));
+  }
+
+  const editingItem = editingId ? items.find((i) => i.id === editingId) : null;
+
   return (
     <div className="water-objects-grid">
 
@@ -168,7 +215,7 @@ export function WaterObjectsPage() {
       {isFormVisible && (
         <section className="card">
           <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.05rem', fontWeight: 700 }}>
-            {editingId ? `Uređivanje: ${items.find((i) => i.id === editingId)?.code ?? ''}` : 'Novi vodni objekt'}
+            {editingId ? `Uređivanje: ${editingItem?.code ?? ''}` : 'Novi vodni objekt'}
           </h2>
           {error ? <p className="error-text" style={{ marginBottom: '0.75rem' }}>{error}</p> : null}
           <form className="water-obj-form" onSubmit={handleSubmit}>
@@ -198,13 +245,21 @@ export function WaterObjectsPage() {
             </label>
             <label>
               Maksimalni volumen (m³)
-              <input name="max_volume_m3" type="number" step="any" value={form.max_volume_m3} onChange={handleFieldChange} />
+              <input
+                name="max_volume_m3"
+                type="number"
+                step="any"
+                value={form.max_volume_m3}
+                onChange={handleFieldChange}
+                placeholder="Automatski iz površina × dubina"
+              />
             </label>
 
-            {/* Geometry / admin fields — less prominent */}
+            {/* Geometry / admin fields */}
             <details className="field-full" style={{ marginTop: '0.25rem' }}>
               <summary style={{ cursor: 'pointer', fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 600, userSelect: 'none' }}>
                 Geometrija i napomena
+                {form.polygon_geojson ? ' (poligon postavljen)' : ''}
               </summary>
               <div className="water-obj-form" style={{ marginTop: '0.75rem' }}>
                 <label className="field-full">
@@ -212,7 +267,7 @@ export function WaterObjectsPage() {
                   <textarea name="centroid_wkt" value={form.centroid_wkt} onChange={handleFieldChange} rows={2} />
                 </label>
                 <label className="field-full">
-                  Poligon (GeoJSON)
+                  Poligon (GeoJSON) — ili nacrtajte na karti ispod
                   <textarea name="polygon_geojson" value={form.polygon_geojson} onChange={handleFieldChange} rows={3} />
                 </label>
                 <label className="field-full">
@@ -241,34 +296,59 @@ export function WaterObjectsPage() {
                 Odustani
               </button>
             </div>
+
+            {/* Delete — only in edit mode, separated as danger action */}
+            {editingId && (
+              <div className="field-full" style={{ borderTop: '1px solid var(--color-danger-border)', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn--sm btn--danger"
+                  onClick={() => handleDelete(editingId)}
+                >
+                  Obriši ovaj objekt
+                </button>
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  Radnja je nepovratna.
+                </span>
+              </div>
+            )}
           </form>
         </section>
       )}
 
       {/* Objects table */}
       <section className="card water-objects-list-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>
             Vodni objekti
             <span style={{ marginLeft: '0.5rem', fontWeight: 400, fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-              ({items.length})
+              ({filteredItems.length}{filteredItems.length !== items.length ? ` / ${items.length}` : ''})
             </span>
           </h3>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Pretraži šifru ili tip..."
+            style={{ width: 'auto', minWidth: '190px', fontSize: '0.875rem', padding: '0.35rem 0.6rem' }}
+            aria-label="Pretraži vvodne objekte"
+          />
         </div>
         <div className="table-wrap">
-          <table>
+          <table className="water-objects-table">
             <thead>
               <tr>
                 <th>Šifra</th>
                 <th>Tip</th>
                 <th>Površina ukupna</th>
                 <th>Maks. dubina</th>
+                <th>Vol. max.</th>
                 <th>Vodostaj</th>
                 <th>Akcije</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => {
+              {filteredItems.map((item) => {
                 const wl = item.latest_water_level_measurement;
                 const status = getWaterLevelStatus(wl);
                 const isEditing = item.id === editingId;
@@ -286,6 +366,7 @@ export function WaterObjectsPage() {
                     </td>
                     <td className="numeric-cell">{formatArea(item.area_total_m2)}</td>
                     <td className="numeric-cell">{formatDepth(item.max_depth_m)}</td>
+                    <td className="numeric-cell">{formatVolume(item.max_volume_m3)}</td>
                     <td>
                       <span className={status.className}>{status.label}</span>
                     </td>
@@ -297,22 +378,15 @@ export function WaterObjectsPage() {
                         <button type="button" className="btn btn--sm" onClick={() => startEdit(item)}>
                           Uredi
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn--sm btn--danger"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Obriši
-                        </button>
                       </div>
                     </td>
                   </tr>
                 );
               })}
-              {items.length === 0 && (
+              {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '1.5rem' }}>
-                    Nema vodnih objekata.
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '1.5rem' }}>
+                    {searchQuery ? 'Nema rezultata za traženi pojam.' : 'Nema vodnih objekata.'}
                   </td>
                 </tr>
               )}
@@ -321,7 +395,12 @@ export function WaterObjectsPage() {
         </div>
       </section>
 
-      <WaterObjectsMap items={items} selectedObjectId={editingId} />
+      <WaterObjectsMap
+        items={items}
+        selectedObjectId={editingId}
+        drawEnabled={isFormVisible}
+        onPolygonDrawn={handlePolygonDrawn}
+      />
     </div>
   );
 }
