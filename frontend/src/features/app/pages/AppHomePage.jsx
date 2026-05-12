@@ -36,16 +36,17 @@ const navigationCards = [
 ];
 
 export function AppHomePage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
     <section className="card app-home-card">
       <div className="app-home-header">
         <div>
-          <h2>Operativni dashboard</h2>
-          <p>Prijavljen korisnik: <strong>{user?.username}</strong> ({user?.role})</p>
+          <h2 style={{ margin: 0 }}>Operativni dashboard</h2>
+          <p style={{ margin: '0.35rem 0 0', fontSize: '0.875rem', color: '#64748b' }}>
+            Prijavljen: <strong>{user?.username}</strong> &middot; {user?.role}
+          </p>
         </div>
-        <button type="button" onClick={logout}>Odjava</button>
       </div>
 
       <p className="app-home-lead">
