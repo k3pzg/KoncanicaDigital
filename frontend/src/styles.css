@@ -1817,6 +1817,189 @@ textarea {
   color: var(--color-text-muted);
 }
 
+/* ── Metrics strip ───────────────────────────────────────────────────────────── */
+
+.metrics-strip {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+}
+
+.metrics-strip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2.5rem;
+  margin: 0;
+}
+
+.metrics-strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0;
+  min-width: 120px;
+}
+
+.metrics-strip-item dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.metrics-strip-item dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.metrics-strip-item--warn dd {
+  color: #b45309;
+}
+
+/* ── Izlov page ──────────────────────────────────────────────────────────────── */
+
+.izlov-page {
+  display: grid;
+  gap: 1rem;
+  width: min(1280px, 100%);
+}
+
+.izlov-header-card {
+  width: 100%;
+}
+
+.izlov-header-card h2 { margin: 0 0 0.25rem; }
+.izlov-header-card p  { margin: 0; color: var(--color-text-muted); font-size: 0.875rem; }
+
+.izlov-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.izlov-form-card,
+.izlov-history-card {
+  width: 100%;
+}
+
+.izlov-form-card h3,
+.izlov-history-card h3 {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.izlov-form-grid {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.izlov-form-section {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.izlov-form-section h4 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.izlov-form-row {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.izlov-form-row label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.izlov-stock-hint {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  font-size: 0.85rem;
+  color: #1e40af;
+}
+
+.izlov-stock-context {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.izlov-stock-context-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.izlov-stock-table {
+  font-size: 0.82rem;
+}
+
+.izlov-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+
+.izlov-history-table {
+  font-size: 0.82rem;
+}
+
+/* tighter column padding for izlov/history tables */
+.izlov-stock-table thead th,
+.izlov-stock-table tbody td,
+.izlov-history-table thead th,
+.izlov-history-table tbody td {
+  padding: 0.35rem 0.55rem;
+}
+
+/* ── Table column improvements ───────────────────────────────────────────────── */
+
+/* Force numeric columns to be narrow enough not to distort layouts */
+.table-wrap th.numeric-cell,
+.table-wrap td.numeric-cell {
+  white-space: nowrap;
+  min-width: 5rem;
+}
+
+/* Prevent text columns from shrinking below readability */
+.fish-stock-table-wrap table th:first-child,
+.fish-stock-table-wrap table td:first-child {
+  min-width: 110px;
+}
+
+/* Even zebra stripe for izlov history rows */
+.izlov-history-table tbody tr:nth-child(even) td {
+  background: #fafbfc;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 1100px) {
@@ -1930,6 +2113,22 @@ textarea {
 
   .map-dashboard-diagnostics {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .metrics-strip-list {
+    gap: 0 1.5rem;
+  }
+
+  .metrics-strip-item {
+    min-width: 90px;
+  }
+
+  .metrics-strip-item dd {
+    font-size: 1.1rem;
+  }
+
+  .izlov-layout {
+    grid-template-columns: 1fr;
   }
 
   .object-detail-list div {

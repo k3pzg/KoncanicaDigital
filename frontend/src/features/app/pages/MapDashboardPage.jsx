@@ -140,6 +140,15 @@ function formatVolume(value) {
   return `${formatDecimal(value, 2)} m³`;
 }
 
+function computeDisplayVolume(item) {
+  const stored = Number(item?.max_volume_m3);
+  if (Number.isFinite(stored) && stored > 0) return stored;
+  const area = Number(item?.area_total_m2);
+  const depth = Number(item?.max_depth_m);
+  if (Number.isFinite(area) && area > 0 && Number.isFinite(depth) && depth > 0) return area * depth;
+  return null;
+}
+
 
 function formatKilograms(value) {
   if (value === null || value === undefined || value === '') {
@@ -612,21 +621,57 @@ export function MapDashboardPage() {
     }
   }, [drawableObjects, mapMode, selectedObjectId, stockSummaryByWaterObjectKey]);
 
+  const globalMetrics = useMemo(() => {
+    const totalCount = stockRows.reduce((s, r) => s + toNumber(r.count_total), 0);
+    const totalWeight = stockRows.reduce((s, r) => s + toNumber(r.weight_total_kg), 0);
+    const activeObjects = waterObjects.filter((w) => w.is_active).length;
+    const objectsWithStock = new Set(stockRows.filter((r) => toNumber(r.count_total) > 0).map((r) => r.water_object_id)).size;
+    const objectsWithLevel = waterObjects.filter((w) => w.latest_water_level_measurement).length;
+    const objectsMissingLevel = waterObjects.length - objectsWithLevel;
+    return { totalCount, totalWeight, activeObjects, objectsWithStock, objectsMissingLevel };
+  }, [stockRows, waterObjects]);
+
   return (
     <div className="map-dashboard">
       <section className="card map-dashboard-header">
         <div>
           <h2>Karta ribnjaka</h2>
-          <p>Operativni pregled vodnih objekata, geometrije, vodostaja i trenutnog stanja ribljeg fonda.</p>
+          <p>Operativni pregled vodnih objekata, vodostaja i stanja ribljeg fonda.</p>
         </div>
         <nav className="dashboard-actions" aria-label="Brze akcije">
-          <Link to="/app/home">Početna</Link>
-          <Link to="/app/fish-entry/new">Novo poribljavanje</Link>
-          <Link to="/app/fish-stock">Novi izlov</Link>
-          <Link to="/app/fish">Nova kontrola</Link>
+          <Link to="/app/fish-entry/new">Poribljavanje</Link>
+          <Link to="/app/izlov">Izlov</Link>
+          <Link to="/app/fish">Kontrola</Link>
           <Link to="/app/water-objects">Vodni objekti</Link>
         </nav>
       </section>
+
+      {!isLoadingWaterObjects && !isLoadingStock && waterObjects.length > 0 ? (
+        <section className="card metrics-strip" aria-label="Ključni pokazatelji">
+          <dl className="metrics-strip-list">
+            <div className="metrics-strip-item">
+              <dt>Ukupno riba</dt>
+              <dd>{formatInteger(globalMetrics.totalCount)}</dd>
+            </div>
+            <div className="metrics-strip-item">
+              <dt>Ukupna masa</dt>
+              <dd>{formatDecimal(globalMetrics.totalWeight, 0)} kg</dd>
+            </div>
+            <div className="metrics-strip-item">
+              <dt>Aktivni objekti</dt>
+              <dd>{formatInteger(globalMetrics.activeObjects)}</dd>
+            </div>
+            <div className="metrics-strip-item">
+              <dt>Objekti s fondom</dt>
+              <dd>{formatInteger(globalMetrics.objectsWithStock)}</dd>
+            </div>
+            <div className={`metrics-strip-item${globalMetrics.objectsMissingLevel > 0 ? ' metrics-strip-item--warn' : ''}`}>
+              <dt>Bez vodostaja</dt>
+              <dd>{formatInteger(globalMetrics.objectsMissingLevel)}</dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
 
       <section className="card map-dashboard-map-card">
         {mapError ? <p className="error-text">{mapError}</p> : null}
@@ -686,7 +731,7 @@ export function MapDashboardPage() {
               <div><dt>Ukupna površina</dt><dd>{formatArea(selectedObject.area_total_m2)}</dd></div>
               <div><dt>Produktivna površina</dt><dd>{formatArea(selectedObject.area_productive_m2)}</dd></div>
               <div><dt>Maks. dubina</dt><dd>{formatDepth(selectedObject.max_depth_m)}</dd></div>
-              <div><dt>Maks. volumen</dt><dd>{formatVolume(selectedObject.max_volume_m3 ?? selectedObject.water_volume_m3)}</dd></div>
+              <div><dt>Maks. volumen</dt><dd>{formatVolume(computeDisplayVolume(selectedObject))}</dd></div>
               <div><dt>Način prikaza</dt><dd>{MAP_MODES[mapMode].label} <span className={getModeStatusClass(selectedModeStatus.key)}>{selectedModeStatus.label}</span></dd></div>
             </dl>
 
