@@ -1,4 +1,17 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+// Build-time variable takes priority (set via VITE_API_BASE_URL in Railway service variables)
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// If not set at build time, detect the correct backend URL at runtime
+if (!API_BASE_URL) {
+  const hostname = window.location.hostname;
+  if (hostname.includes('railway.app')) {
+    // Running on Railway — route to the backend service's public domain
+    API_BASE_URL = 'https://backend-api.up.railway.app';
+  } else {
+    // Local development — the Vite dev server proxies API calls, so no prefix needed
+    API_BASE_URL = '';
+  }
+}
 
 function translateBackendMessage(message) {
   if (!message) {
